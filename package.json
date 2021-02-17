@@ -1,0 +1,13 @@
+{
+  "name": "folio-global-update",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:indexdata/folio-global-update.git",
+  "author": "Charles Ledvina <charles@indexdata.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "inquirer": "^7.3.3",
+    "superagent": "^6.1.0",
+    "vorpal": "^1.12.0"
+  }
+}

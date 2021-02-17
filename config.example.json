@@ -1,0 +1,6 @@
+{
+  "okapi": "http://localhost:9130",
+  "tenant": "diku",
+  "username": "diku_admin",
+  "password": "admin"
+}
