@@ -2,5 +2,8 @@
   "okapi": "http://localhost:9130",
   "tenant": "diku",
   "username": "diku_admin",
-  "password": "admin"
+  "password": "admin",
+  "inputPath": "data",
+  "actionsPath": "actions",
+  "testLimit": 5
 }
