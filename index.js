@@ -28,22 +28,22 @@ const app = async () => {
     .action(function (args, cb) {
       const self = this;
       if (!token) {
-        this.log('You are not logged in!');
-        cb();
-        return;
+        this.log('WARN You are not logged in!');
       }
       return this.prompt([
         {
           type: 'list',
-          name: 'endpoint',
+          name: 'action',
           default: false,
-          message: 'Choose endpoint:',
-          choices: menus.endpoints
+          message: 'Choose action:',
+          choices: function () {
+            return fs.readdirSync(config.actionsPath);
+          } 
         },
         {
           type: 'list',
           name: 'fileName',
-          default: 'instance_ids.txt',
+          default: false,
           message: 'Choose file:',
           choices: function () {
             return fs.readdirSync(config.inputPath);
@@ -51,14 +51,10 @@ const app = async () => {
         }
       ],
       async function (choice) {
-        const dataPath = `${config.inputPath}/${choice.fileName}`;
-        self.log(`Opening ${dataPath}...`);
-        let fileData = fs.readFileSync(dataPath, 'utf8');
-        const ids = fileData.split('\n');
-        fileData = '';
-        const rcount = ids.length;
-        self.log(`Updating ${rcount} records...`);
-        getPutFolio(self, choice.endpoint, ids);
+        let scriptPath = `${config.actionsPath}/${choice.action}`;
+        if (!scriptPath.match(/^(\.\/|\/)/)) scriptPath = `./${scriptPath}`;
+        const inFile = `${config.inputPath}/${choice.fileName}`;
+        getPutFolio(self, scriptPath, inFile)
         cb();
       });
     });
@@ -76,13 +72,24 @@ const app = async () => {
     .show();
 }
 
-const getPutFolio = async (self, endpoint, ids) => {
+const getPutFolio = async (self, scriptPath, inFile) => {
+  
+  const script = require(scriptPath);
+  const endpoint = script.metadata.endpoint;
+
+  const fileStream = fs.createReadStream(inFile);
+
+  const rl = readline.createInterface({
+    input: fileStream,
+    crlfDelay: Infinity
+  });
   
   succ = 0;
-  for (let c = 0; c < ids.length; c++) {
-    let id = ids[c];
+  c = 0;
+  for await (let id of rl) {
+    c++;
     const url = `${config.okapi}/${endpoint}/${id}`;
-    self.log(`[${c + 1}] ${url}`);
+    self.log(`[${c}] ${url}`);
     try {
       let res = await superagent
         .get(url)
