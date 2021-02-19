@@ -8,6 +8,11 @@ let token = null;
 const host = config.okapi.replace(/^http.+?\/\//, '');
 let workMode = 'LIVE';
 let delimiter = `${workMode} ${host}>`;
+vorpal.history('FolioGobalUpdate');
+const defaults = {
+  action: false,
+  fileName: false
+}
 
 const app = async () => {
   vorpal
@@ -23,7 +28,7 @@ const app = async () => {
     });
 
   vorpal
-    .command('mode', 'Choose between TEST or LIVE mode (default "live")')
+    .command('mode', 'Choose between TEST or LIVE mode (default "LIVE")')
     .action(function (args, cb) {
       return this.prompt(
         {
@@ -50,7 +55,7 @@ const app = async () => {
         {
           type: 'list',
           name: 'action',
-          default: false,
+          default: defaults.action,
           message: 'Choose action:',
           choices: function () {
             return fs.readdirSync(config.actionsPath);
@@ -59,7 +64,7 @@ const app = async () => {
         {
           type: 'list',
           name: 'fileName',
-          default: false,
+          default: defaults.fileName,
           message: 'Choose file:',
           choices: function () {
             return fs.readdirSync(config.inputPath);
@@ -67,6 +72,8 @@ const app = async () => {
         }
       ],
       async function (choice) {
+        defaults.action = choice.action;
+        defaults.fileName = choice.fileName;
         let scriptPath = `${config.actionsPath}/${choice.action}`;
         if (!scriptPath.match(/^(\.\/|\/)/)) scriptPath = `./${scriptPath}`;
         const inFile = `${config.inputPath}/${choice.fileName}`;
@@ -106,7 +113,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     let rec = {};
     c++;
     const url = `${config.okapi}/${endpoint}/${id}`;
-    self.log(`[${c}] ${url}`);
+    self.log(`[${c}] GET ${url}`);
     try {
       let res = await superagent
         .get(url)
@@ -124,8 +131,31 @@ const getPutFolio = async (self, scriptPath, inFile) => {
       }
     }
     if (rec.id) {
-      updatedRec = script.action(rec);
-      self.log(updatedRec);
+      let updatedRec = script.action(rec);
+      if (workMode === 'TEST') {
+        self.log(updatedRec);
+        if (c === config.testLimit) break;
+      } else {
+        try {
+          self.log(`  PUT ${url}`);
+          let res = await superagent
+            .put(url)
+            .send(updatedRec)
+            .set('x-okapi-token', token)
+            .set('accept', 'application/json')
+            .set('accept', 'text/plain')
+            .set('content-type', 'application/json')
+          succ++;
+        } catch (e) {
+          if (e.response) {
+            self.log(e.response.text);
+            return;
+          } else {
+            self.log(e);
+            return;
+          }
+        }
+      }
     }
   };
   delete require.cache[require.resolve(scriptPath)];
