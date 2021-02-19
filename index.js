@@ -3,13 +3,11 @@ const superagent = require('superagent');
 const vorpal = require('vorpal')();
 const readline = require('readline');
 const config = require('./config.json');
+
 let token = null;
 const host = config.okapi.replace(/^http.+?\/\//, '');
-
-const menus = {
-  methods: [ 'Update', 'List', 'Delete' ],
-  endpoints: config.endpoints
-}
+let workMode = 'LIVE';
+let delimiter = `${workMode} ${host}>`;
 
 const app = async () => {
   vorpal
@@ -24,7 +22,25 @@ const app = async () => {
       cb();
     });
 
-  vorpal.command('update')
+  vorpal
+    .command('mode', 'Choose between TEST or LIVE mode (default "live")')
+    .action(function (args, cb) {
+      return this.prompt(
+        {
+          type: 'list',
+          name: 'mode',
+          default: workMode,
+          message: 'Choose mode:',
+          choices: [ 'LIVE', 'TEST' ]
+        },
+        async function (choice) {
+          workMode = choice.mode;
+          vorpal.delimiter(`${workMode} ${host}>`);
+          cb();
+        });
+    });
+
+  vorpal.command('update', 'Update FOLIO objects based on an action script and list of IDs')
     .action(function (args, cb) {
       const self = this;
       if (!token) {
@@ -68,7 +84,7 @@ const app = async () => {
     });
   
   vorpal
-    .delimiter(`${host}>`)
+    .delimiter(delimiter)
     .show();
 }
 
