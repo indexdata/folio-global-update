@@ -2,4 +2,9 @@ metadata = {
   endpoint: 'holdings-storage/holdings'
 };
 
-module.exports = { metadata };
+const action = (record) => {
+  record.discoverySuppress = true;
+  return record;
+}
+
+module.exports = { metadata, action };

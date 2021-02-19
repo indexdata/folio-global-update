@@ -87,6 +87,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
   succ = 0;
   c = 0;
   for await (let id of rl) {
+    let rec = {};
     c++;
     const url = `${config.okapi}/${endpoint}/${id}`;
     self.log(`[${c}] ${url}`);
@@ -95,7 +96,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
         .get(url)
         .set('x-okapi-token', token)
         .set('accept', 'application/json')
-      self.log(res.body);
+      rec = res.body;
       succ++;
     } catch (e) {
       if (e.response) {
@@ -106,7 +107,12 @@ const getPutFolio = async (self, scriptPath, inFile) => {
         return;
       }
     }
+    if (rec.id) {
+      updatedRec = script.action(rec);
+      self.log(updatedRec);
+    }
   };
+  delete require.cache[require.resolve(scriptPath)];
   return succ;
 }
 
