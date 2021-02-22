@@ -73,7 +73,7 @@ After a successful login, the prompt will display the mode and OKAPI host.  If n
 
 When in TEST mode, no changes will be PUT to the OKAPI endpoint.  Use this mode for testing the output of the selected action script.
 
-Action scripts are JavaScript that make a change to a FOLIO object.  In its simplist form, the action will change a single, string field:
+Action scripts are JavaScripts that make a change to a FOLIO object.  In its simplist form, the action will change a single, string field:
 
 ```
 metadata = {
@@ -112,5 +112,5 @@ LIVE folio-testing-okapi.dev.folio.org> update
   itemIds.txt 
 ```
 
-Hitting enter will start the updating records and log the progress to the screen (and the logPath, if set).
+Hitting enter will start the updating of records and log the progress to the screen (and the logPath, if set).
 
