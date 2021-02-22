@@ -7,7 +7,8 @@ const config = require('./config.json');
 let token = null;
 const host = config.okapi.replace(/^http.+?\/\//, '');
 let workMode = 'LIVE';
-let delimiter = `${workMode} ${host}>`;
+// let delimiter = `${workMode} ${host}>`;
+let delimiter = `Not connected>`;
 vorpal.history('FolioGobalUpdate');
 const defaults = {
   action: false,
@@ -18,11 +19,40 @@ const app = async () => {
   vorpal
     .command('login', `Log into FOLIO at ${config.okapi}`)
     .action(async function (args, cb) {
-      token = await getAuthToken(config.okapi, config.tenant, config.username, config.password);
+      let user;
+      let pw;
+      if (!config.username) {
+        await this.prompt(
+          {
+            type: 'input',
+            name: 'user',
+            message: 'Username: '
+          }, function (input) {
+            user = input.user;
+          }
+        )
+      } else {
+        user = config.username;
+      }
+      if (!config.password) {
+        await this.prompt(
+          {
+            type: 'password',
+            name: 'pass',
+            message: 'Password: '
+          }, function (input) {
+            pw = input.pass;
+          }
+        )
+      } else {
+        pw = config.password;
+      }
+      token = await getAuthToken(config.okapi, config.tenant, user, pw);
       if (token.match(/Error/i)) {
         this.log(token);
       } else {
         this.log(`Login successfull!`);
+        vorpal.delimiter(`${workMode} ${host}>`);
       }
       cb();
     });
@@ -137,7 +167,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
         if (c === config.testLimit) break;
       } else {
         try {
-          self.log(`  PUT ${url}`);
+          self.log(`     PUT ${url}`);
           let res = await superagent
             .put(url)
             .send(updatedRec)
