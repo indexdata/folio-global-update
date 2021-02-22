@@ -1,6 +1,5 @@
 config.json
 node_modules
-data/*
 errors/*
 log/*
 saved/*
