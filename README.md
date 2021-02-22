@@ -9,9 +9,9 @@ Requirements:
 * nodejs (https://nodejs.org/en/download/)
 * yarn (https://yarnpkg.com/getting-started/install) or npm
 
-Use you favorite package mananger (npm or yarn) to install required modules.
+Installing with yarn.
 
-`$ yarn add`
+`$ yarn install`
 
 Run the CLI
 
