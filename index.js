@@ -116,9 +116,11 @@ const app = async () => {
 
   
   vorpal  
-    .command('show <config>', `Show okapi, tenant, or username settings.`)
+    .command('settings', `Show app settings.`)
     .action(function (args, cb) {
-      this.log(config[args.config]);
+      const configView = Object.assign({}, config);
+      configView.password = '<hidden>';
+      this.log(configView);
       cb();
     });
   
