@@ -171,11 +171,12 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     input: readStream,
     crlfDelay: Infinity
   });
+
+  const startTime = Date.now();
   
   const stats = {
     success: 0,
-    fail: 0,
-    total: 0,
+    fail: 0
   }
   let c = 0;
   for await (let id of rl) {
@@ -236,7 +237,12 @@ const getPutFolio = async (self, scriptPath, inFile) => {
       }
     }
   }
+  const endTime = Date.now();
+  let seconds = (endTime - startTime) / 1000;
   stats.total = c;
+  stats.start = new Date(startTime).toUTCString();
+  stats.end = new Date(endTime).toUTCString();
+  stats.seconds = seconds;
   delete require.cache[require.resolve(scriptPath)];
   self.log(stats);
   logger.log(stats);
