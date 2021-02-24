@@ -172,8 +172,12 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     crlfDelay: Infinity
   });
   
-  succ = 0;
-  c = 0;
+  const stats = {
+    success: 0,
+    fail: 0,
+    total: 0,
+  }
+  let c = 0;
   for await (let id of rl) {
     let rec = {};
     c++;
@@ -187,7 +191,6 @@ const getPutFolio = async (self, scriptPath, inFile) => {
         .set('x-okapi-token', token)
         .set('accept', 'application/json')
       rec = res.body;
-      succ++;
     } catch (e) {
       let eMsg = 'ERROR ';
       if (e.response) {
@@ -197,6 +200,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
       }
       self.log(eMsg);
       logger.log(eMsg);
+      stats.fail++;
     }
     if (rec.id) {
       if (workMode !== 'TEST') saver.log(JSON.stringify(rec));
@@ -216,7 +220,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
             .set('accept', 'application/json')
             .set('accept', 'text/plain')
             .set('content-type', 'application/json')
-          succ++;
+          stats.success++
         } catch (e) {
           let eMsg = 'ERROR ';
           if (e.response) {
@@ -227,12 +231,15 @@ const getPutFolio = async (self, scriptPath, inFile) => {
           self.log(eMsg);
           logger.log(eMsg);
           failer.log(JSON.stringify(updatedRec));
+          stats.fail++
         }
       }
     }
-  };
+  }
+  stats.total = c;
   delete require.cache[require.resolve(scriptPath)];
-  return succ;
+  self.log(stats);
+  logger.log(stats);
 }
 
 const getFolio = async (endpoint) => {
