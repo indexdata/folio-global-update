@@ -12,7 +12,7 @@ const host = config.okapi.replace(/^http.+?\/\//, '');
 let workMode = 'LIVE';
 // let delimiter = `${workMode} ${host}>`;
 let delimiter = `Not connected>`;
-vorpal.history('FolioGobalUpdate');
+// vorpal.history('FolioGobalUpdate');
 const defaults = {
   action: false,
   fileName: false
@@ -147,6 +147,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
   
   const script = require(scriptPath);
   const endpoint = script.metadata.endpoint;
+  const postPoint = script.metadata.postEndpoint;
 
   const pp = path.parse(scriptPath);
   let logger = {};
@@ -190,67 +191,85 @@ const getPutFolio = async (self, scriptPath, inFile) => {
 
   const startTime = Date.now();
   
+  let putUrl;
   const stats = {
     success: 0,
     fail: 0
   }
   let c = 0;
   for await (let id of rl) {
+    let eMsg = null;
     let rec = {};
     c++;
-    const url = `${config.okapi}/${endpoint}/${id}`;
-    let getMsg = `[${c}] GET ${url}`;
-    self.log(getMsg);
-    logger.log(getMsg)
-    try {
-      let res = await superagent
-        .get(url)
-        .set('x-okapi-token', token)
-        .set('accept', 'application/json')
-      rec = res.body;
-    } catch (e) {
-      let eMsg = 'ERROR ';
-      if (e.response) {
-        eMsg += e.response.text;
-      } else {
-        eMsg += e;
+    if (endpoint) {
+      let ep = (endpoint.match(/\{id\}/)) ? endpoint.replace(/\{id\}/, id) : `${endpoint}/${id}`; 
+      let url = `${config.okapi}/${ep}`;
+      let getMsg = `[${c}] GET ${url}`;
+      self.log(getMsg);
+      logger.log(getMsg)
+      putUrl = url;
+      try {
+        let res = await superagent
+          .get(url)
+          .set('x-okapi-token', token)
+          .set('accept', 'application/json')
+        rec = res.body;
+      } catch (e) {
+        eMsg = (e.response) ? e.response.text : e;
       }
-      self.log(eMsg);
-      logger.log(eMsg);
-      stats.fail++;
     }
-    if (rec.id) {
+
+    if (rec.id || !endpoint) {
       if (workMode !== 'TEST') saver.log(JSON.stringify(rec));
       let updatedRec = script.action(rec);
       if (workMode === 'TEST') {
         self.log(updatedRec);
         if (c === config.testLimit) break;
       } else {
-        try {
-          let pMsg = `     PUT ${url}`; 
-          self.log(pMsg);
-          logger.log(pMsg);
-          let res = await superagent
-            .put(url)
-            .send(updatedRec)
-            .set('x-okapi-token', token)
-            .set('accept', 'application/json')
-            .set('accept', 'text/plain')
-            .set('content-type', 'application/json')
-          stats.success++
-        } catch (e) {
-          let eMsg = 'ERROR ';
-          if (e.response) {
-            eMsg += e.response.text;
-          } else {
-            eMsg += e;
+        if (postPoint) {
+          let ep = (postPoint.match(/\{id\}/)) ? postPoint.replace(/\{id\}/, id) : `${postPoint}/${id}`;
+          let url = `${config.okapi}/${ep}`;
+          try {
+            let pMsg = `     POST ${url}`; 
+            self.log(pMsg);
+            logger.log(pMsg);
+            let res = await superagent
+              .post(url)
+              .send(updatedRec)
+              .set('x-okapi-token', token)
+              .set('accept', 'application/json')
+              .set('accept', 'text/plain')
+              .set('content-type', 'application/json')
+            stats.success++
+          } catch (e) {
+            eMsg = (e.response) ? e.response.text : e;
+            failer.log(JSON.stringify(updatedRec));
           }
-          self.log(eMsg);
-          logger.log(eMsg);
-          failer.log(JSON.stringify(updatedRec));
-          stats.fail++
+        } else {
+          try {
+            let pMsg = `     PUT ${url}`;
+            self.log(pMsg);
+            logger.log(pMsg);
+            let res = await superagent
+              .put(url)
+              .send(updatedRec)
+              .set('x-okapi-token', token)
+              .set('accept', 'application/json')
+              .set('accept', 'text/plain')
+              .set('content-type', 'application/json')
+            stats.success++
+          } catch (e) {
+            eMsg = (e.response) ? e.response.text : e;
+            failer.log(JSON.stringify(updatedRec));
+          }
         }
       }
+    }
+    if (eMsg) {
+      eMsg = `ERROR ${eMsg}`;
+      self.log(eMsg);
+      logger.log(eMsg);
+      stats.fail++;
     }
   }
   const endTime = Date.now();
