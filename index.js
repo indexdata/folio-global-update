@@ -3,16 +3,22 @@ const superagent = require('superagent');
 const vorpal = require('vorpal')();
 const inquirer = require('inquirer');
 const readline = require('readline');
+const chalk = require('chalk');
 const { Console } = require('console');
 const path = require('path');
 const config = require('./config.json');
 
 let token = null;
 const host = config.okapi.replace(/^http.+?\/\//, '');
-let workMode = 'LIVE';
-// let delimiter = `${workMode} ${host}>`;
-let delimiter = `Not connected>`;
-// vorpal.history('FolioGobalUpdate');
+let work = {
+  mode: 'LIVE',
+  status: 'Not connected'
+}
+const setDelimiter = () => {
+  vorpal.delimiter(`${work.mode} ${work.status}>`).show();
+
+}
+setDelimiter();
 const defaults = {
   action: false,
   fileName: false
@@ -54,26 +60,35 @@ const app = async () => {
       if (token.match(/Error/i)) {
         this.log(token);
       } else {
-        this.log(`Login successfull!`);
-        vorpal.delimiter(`${workMode} ${host}>`);
+        work.status = host;
+        setDelimiter();
       }
+      cb();
+    });
+  
+  vorpal
+    .command('logout', 'Destroy current auth token.')
+    .action(function (args, cb) {
+      token = '';
+      work.status = 'Not connected';
+      setDelimiter();
       cb();
     });
 
   vorpal
-    .command('mode', 'Choose between TEST or LIVE mode (default "LIVE")')
+    .command('mode', 'Choose between TEST or LIVE modes.')
     .action(function (args, cb) {
       return this.prompt(
         {
           type: 'list',
           name: 'mode',
-          default: workMode,
+          default: work.mode,
           message: 'Choose mode:',
           choices: [ 'LIVE', 'TEST' ]
         },
         async function (choice) {
-          workMode = choice.mode;
-          vorpal.delimiter(`${workMode} ${host}>`);
+          work.mode = choice.mode;
+          setDelimiter();
           cb();
         });
     });
@@ -82,7 +97,7 @@ const app = async () => {
     .action(function (args, cb) {
       const self = this;
       if (!token) {
-        this.log('WARN You are not logged in!');
+        this.log(chalk.yellow('WARN You are not logged in!'));
       }
       return this.prompt([
         {
@@ -137,10 +152,6 @@ const app = async () => {
       this.log(configView);
       cb();
     });
-  
-  vorpal
-    .delimiter(delimiter)
-    .show();
 }
 
 const getPutFolio = async (self, scriptPath, inFile) => {
@@ -157,7 +168,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
 
   const pp = path.parse(scriptPath);
   let logger = {};
-  if (config.logPath && workMode !== 'TEST') {
+  if (config.logPath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.logPath)) fs.mkdirSync(config.logPath);
     const lpath = `${config.logPath}/${pp.name}.log`;
     const logout = fs.createWriteStream(lpath);
@@ -167,7 +178,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
   }
 
   let saver = {};
-  if (config.savePath && workMode !== 'TEST') {
+  if (config.savePath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.savePath)) fs.mkdirSync(config.savePath);
     const pp = path.parse(scriptPath);
     const spath = `${config.savePath}/${pp.name}.jsonl`;
@@ -178,7 +189,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
   }
 
   let failer = {};
-  if (config.errPath && workMode !== 'TEST') {
+  if (config.errPath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.errPath)) fs.mkdirSync(config.errPath);
     const pp = path.parse(scriptPath);
     const spath = `${config.errPath}/${pp.name}.jsonl`;
@@ -225,9 +236,9 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     }
 
     if (rec.id || !endpoint) {
-      if (workMode !== 'TEST' && rec.id) saver.log(JSON.stringify(rec));
+      if (work.mode !== 'TEST' && rec.id) saver.log(JSON.stringify(rec));
       let updatedRec = script.action(rec);
-      if (workMode === 'TEST') {
+      if (work.mode === 'TEST') {
         self.log(updatedRec);
         if (c === config.testLimit) break;
       } else {
@@ -253,7 +264,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
           try {
             let url = putUrl;
             let pMsg = `[${c}] PUT ${url}`;
-            self.log(pMsg);
+            self.log(chalk.green(pMsg));
             logger.log(pMsg);
             let res = await superagent
               .put(url)
@@ -272,7 +283,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     }
     if (eMsg) {
       eMsg = `ERROR ${eMsg}`;
-      self.log(eMsg);
+      self.log(chalk.red(eMsg));
       logger.log(eMsg);
       stats.fail++;
     }
