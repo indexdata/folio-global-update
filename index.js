@@ -149,6 +149,12 @@ const getPutFolio = async (self, scriptPath, inFile) => {
   const endpoint = script.metadata.endpoint;
   const postPoint = script.metadata.postEndpoint;
 
+  const makeUrl = (endpoint, id) => {
+    let ep = (endpoint.match(/\{id\}/)) ? endpoint.replace(/\{id\}/, id) : `${endpoint}/${id}`;
+    let url = `${config.okapi}/${ep}`;
+    return url;
+  }
+
   const pp = path.parse(scriptPath);
   let logger = {};
   if (config.logPath && workMode !== 'TEST') {
@@ -202,8 +208,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     let rec = {};
     c++;
     if (endpoint) {
-      let ep = (endpoint.match(/\{id\}/)) ? endpoint.replace(/\{id\}/, id) : `${endpoint}/${id}`; 
-      let url = `${config.okapi}/${ep}`;
+      let url = makeUrl(endpoint, id);
       let getMsg = `[${c}] GET ${url}`;
       self.log(getMsg);
       logger.log(getMsg)
@@ -220,17 +225,16 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     }
 
     if (rec.id || !endpoint) {
-      if (workMode !== 'TEST') saver.log(JSON.stringify(rec));
+      if (workMode !== 'TEST' && rec.id) saver.log(JSON.stringify(rec));
       let updatedRec = script.action(rec);
       if (workMode === 'TEST') {
         self.log(updatedRec);
         if (c === config.testLimit) break;
       } else {
         if (postPoint) {
-          let ep = (postPoint.match(/\{id\}/)) ? postPoint.replace(/\{id\}/, id) : `${postPoint}/${id}`;
-          let url = `${config.okapi}/${ep}`;
+          let url = makeUrl(postPoint, id);
           try {
-            let pMsg = `     POST ${url}`; 
+            let pMsg = `[${c}] POST ${url}`; 
             self.log(pMsg);
             logger.log(pMsg);
             let res = await superagent
@@ -247,7 +251,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
           }
         } else {
           try {
-            let pMsg = `     PUT ${url}`;
+            let pMsg = `[${c}] PUT ${url}`;
             self.log(pMsg);
             logger.log(pMsg);
             let res = await superagent
