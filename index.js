@@ -251,6 +251,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
           }
         } else {
           try {
+            let url = putUrl;
             let pMsg = `[${c}] PUT ${url}`;
             self.log(pMsg);
             logger.log(pMsg);
