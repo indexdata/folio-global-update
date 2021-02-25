@@ -288,15 +288,17 @@ const getPutFolio = async (self, scriptPath, inFile) => {
       stats.fail++;
     }
   }
-  const endTime = Date.now();
-  let seconds = (endTime - startTime) / 1000;
-  stats.total = c;
-  stats.start = new Date(startTime).toUTCString();
-  stats.end = new Date(endTime).toUTCString();
-  stats.seconds = seconds;
+  if (!work.mode === 'TEST') {
+    const endTime = Date.now();
+    let seconds = (endTime - startTime) / 1000;
+    stats.total = c;
+    stats.start = new Date(startTime).toUTCString();
+    stats.end = new Date(endTime).toUTCString();
+    stats.seconds = seconds;
+    self.log(stats);
+    logger.log(stats);
+  }
   delete require.cache[require.resolve(scriptPath)];
-  self.log(stats);
-  logger.log(stats);
 }
 
 const getFolio = async (endpoint) => {
