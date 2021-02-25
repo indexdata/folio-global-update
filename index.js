@@ -1,6 +1,7 @@
 const fs = require('fs');
 const superagent = require('superagent');
 const vorpal = require('vorpal')();
+const inquirer = require('inquirer');
 const readline = require('readline');
 const { Console } = require('console');
 const path = require('path');
@@ -90,8 +91,11 @@ const app = async () => {
           default: defaults.action,
           message: 'Choose action:',
           choices: function () {
-            return fs.readdirSync(config.actionsPath);
-          } 
+            const sel = fs.readdirSync(config.actionsPath);
+            sel.push(new inquirer.Separator());
+            sel.push('Cancel');
+            return sel;
+          }
         },
         {
           type: 'list',
@@ -99,18 +103,28 @@ const app = async () => {
           default: defaults.fileName,
           message: 'Choose file:',
           choices: function () {
-            return fs.readdirSync(config.inputPath);
+            let sel = fs.readdirSync(config.inputPath);
+            sel.push(new inquirer.Separator());
+            sel.push('Cancel');
+            return sel;
+          },
+          when: function (answers) {
+            return answers.action !== 'Cancel';
           }
         }
       ],
       async function (choice) {
-        defaults.action = choice.action;
-        defaults.fileName = choice.fileName;
-        let scriptPath = `${config.actionsPath}/${choice.action}`;
-        if (!scriptPath.match(/^(\.\/|\/)/)) scriptPath = `./${scriptPath}`;
-        const inFile = `${config.inputPath}/${choice.fileName}`;
-        getPutFolio(self, scriptPath, inFile)
-        cb();
+        if (choice.action === 'Cancel' || choice.fileName === 'Cancel') {
+          cb();
+        } else {
+          defaults.action = choice.action;
+          defaults.fileName = choice.fileName;
+          let scriptPath = `${config.actionsPath}/${choice.action}`;
+          if (!scriptPath.match(/^(\.\/|\/)/)) scriptPath = `./${scriptPath}`;
+          const inFile = `${config.inputPath}/${choice.fileName}`;
+          getPutFolio(self, scriptPath, inFile)
+          cb();
+        }
       });
     });
 
