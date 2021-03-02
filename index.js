@@ -4,6 +4,7 @@ const vorpal = require('vorpal')();
 const inquirer = require('inquirer');
 const readline = require('readline');
 const chalk = require('chalk');
+const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
 const config = require('./config.json');
@@ -11,7 +12,7 @@ const config = require('./config.json');
 let token = null;
 const host = config.okapi.replace(/^http.+?\/\//, '');
 let work = {
-  mode: 'LIVE',
+  mode: 'TEST',
   status: 'Not connected'
 }
 const setDelimiter = () => {
@@ -216,7 +217,9 @@ const getPutFolio = async (self, scriptPath, inFile) => {
   let c = 0;
   for await (let id of rl) {
     let eMsg = null;
-    let rec = {};
+    let rec;
+    let oldRecString;
+    let oldRec;
     c++;
     if (endpoint) {
       let url = makeUrl(endpoint, id);
@@ -229,6 +232,8 @@ const getPutFolio = async (self, scriptPath, inFile) => {
           .get(url)
           .set('x-okapi-token', token)
           .set('accept', 'application/json')
+        oldRecString = JSON.stringify(res.body); 
+        oldRec = JSON.parse(oldRecString);
         rec = res.body;
       } catch (e) {
         eMsg = (e.response) ? e.response.text : e;
@@ -236,10 +241,30 @@ const getPutFolio = async (self, scriptPath, inFile) => {
     }
 
     if (rec.id || !endpoint) {
-      if (work.mode !== 'TEST' && rec.id) saver.log(JSON.stringify(rec));
-      let updatedRec = script.action(rec);
+      if (work.mode !== 'TEST' && rec.id) saver.log(oldRecString);
+      let updatedRec = {};
+      try {
+        updatedRec = await script.action(rec);
+      } catch (e) {
+        self.log(e);
+      }
       if (work.mode === 'TEST') {
+        let dout = diff(oldRec, updatedRec);
         self.log(updatedRec);
+        let diffOut = { changes: [] };
+        if (dout) {
+          dout.forEach(d => {
+            let prop = d.path.join('.');
+            let df = {
+              property: prop,
+              old: d.lhs,
+              new: d.rhs
+            };
+            diffOut.changes.push(df);
+          })
+        }
+        diffOut.changeCount = diffOut.changes.length;
+        self.log(diffOut);
         if (c === config.testLimit) break;
       } else {
         if (postPoint) {

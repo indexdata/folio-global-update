@@ -6,6 +6,7 @@
   "author": "Charles Ledvina <charles@indexdata.com>",
   "license": "Apache-2.0",
   "dependencies": {
+    "deep-diff": "^1.0.2",
     "inquirer": "^7.3.3",
     "superagent": "^6.1.0",
     "vorpal": "^1.12.0"
