@@ -240,7 +240,7 @@ const getPutFolio = async (self, scriptPath, inFile) => {
       }
     }
 
-    if (rec.id || !endpoint) {
+    if (rec || !endpoint) {
       if (work.mode !== 'TEST' && rec.id) saver.log(oldRecString);
       let updatedRec = {};
       try {
