@@ -160,6 +160,7 @@ const runAction = async (self, scriptPath, inFile) => {
   const steps = {
     goto: getFolio,
     send: putFolio,
+    preview: preview,
     term: self
   };
 
@@ -181,9 +182,16 @@ const runAction = async (self, scriptPath, inFile) => {
     } catch (e) {
       self.log(chalk.red(e));
     }
+    if (work.mode === 'TEST' && line === config.testLimit) break;
   }
   
   delete require.cache[require.resolve(scriptPath)];
+}
+
+const preview = async (record) => {
+  if (work.mode === 'TEST') {
+    vorpal.log(record);
+  }
 }
 
 const getFolio = async (endpoint) => {
@@ -202,20 +210,22 @@ const getFolio = async (endpoint) => {
 }
 
 const putFolio = async (endpoint, payload) => {
-  const url = `${config.okapi}/${endpoint}`;
-  vorpal.log(`  PUT ${url}`);
-  try {
-    let res = await superagent
-      .put(url)
-      .send(payload)
-      .set('x-okapi-token', token)
-      .set('accept', 'application/json')
-      .set('accept', 'text/plain')
-      .set('content-type', 'application/json')
-    return res.body;
-  } catch (e) {
-    const errMsg = (e.response) ? e.response.text : e;
-    throw new Error(errMsg);
+  if (work.mode === 'LIVE') {
+    const url = `${config.okapi}/${endpoint}`;
+    vorpal.log(`  PUT ${url}`);
+    try {
+      let res = await superagent
+        .put(url)
+        .send(payload)
+        .set('x-okapi-token', token)
+        .set('accept', 'application/json')
+        .set('accept', 'text/plain')
+        .set('content-type', 'application/json')
+      return res.body;
+    } catch (e) {
+      const errMsg = (e.response) ? e.response.text : e;
+      throw new Error(errMsg);
+    }
   }
 }
 
