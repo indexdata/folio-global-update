@@ -41,6 +41,7 @@ const app = async () => {
   vorpal
     .command('login', `Log into FOLIO`)
     .action(async function (args, cb) {
+      let self = this;
       let user;
       let pw;
       if (!config.username) {
@@ -69,7 +70,7 @@ const app = async () => {
       } else {
         pw = config.password;
       }
-      token = await getAuthToken(config.okapi, config.tenant, user, pw);
+      token = await getAuthToken(config.okapi, config.tenant, user, pw, self);
       if (token) {
         work.status = host;
         setDelimiter();
@@ -233,13 +234,13 @@ const runAction = async (self, scriptPath, inFile) => {
   }
   delete require.cache[require.resolve(scriptPath)];
   stats.total = line;
-  self.log(stats);
+  if (work.mode !== 'TEST') self.log(stats);
 }
 
 const preview = async (updatedRec) => {
   if (work.mode === 'TEST') {
     let dout = diff(originalRec, updatedRec);
-    vorpal.log(updatedRec);
+    steps.term.log(updatedRec);
     let diffOut = { changes: [] };
     if (dout) {
       dout.forEach(d => {
@@ -253,13 +254,13 @@ const preview = async (updatedRec) => {
       })
     }
     diffOut.changeCount = diffOut.changes.length;
-    vorpal.log(diffOut);
+    steps.term.log(diffOut);
   }
 }
 
 const getFolio = async (endpoint) => {
   const url = `${config.okapi}/${endpoint}`;
-  vorpal.log(`  GET ${url}`);
+  steps.term.log(`  GET ${url}`);
   try {
     let res = await superagent
       .get(url)
@@ -276,7 +277,7 @@ const getFolio = async (endpoint) => {
 const putFolio = async (endpoint, payload) => {
   if (work.mode === 'LIVE') {
     const url = `${config.okapi}/${endpoint}`;
-    vorpal.log(`  PUT ${url}`);
+    steps.term.log(`  PUT ${url}`);
     try {
       let res = await superagent
         .put(url)
@@ -293,7 +294,7 @@ const putFolio = async (endpoint, payload) => {
   }
 }
 
-const getAuthToken = async (okapi, tenant, username, password) => {
+const getAuthToken = async (okapi, tenant, username, password, self) => {
   const authUrl = okapi + '/bl-users/login'; 
   const authBody = `{"username": "${username}", "password": "${password}"}`;
   try {
@@ -306,7 +307,7 @@ const getAuthToken = async (okapi, tenant, username, password) => {
     return res.headers['x-okapi-token'];
   } catch (e) {
     const errMsg = (e.response) ? e.response.text : e;
-    vorpal.log(chalk.red(errMsg));
+    self.log(chalk.red(errMsg));
   }
 };
 
