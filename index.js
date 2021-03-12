@@ -12,6 +12,7 @@ const configsDir = './configs';
 let config = {};
 let token = null;
 let host = null;
+let originalRec = {};
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -224,9 +225,24 @@ const runAction = async (self, scriptPath, inFile) => {
   delete require.cache[require.resolve(scriptPath)];
 }
 
-const preview = async (record) => {
+const preview = async (updatedRec) => {
   if (work.mode === 'TEST') {
-    vorpal.log(record);
+    let dout = diff(originalRec, updatedRec);
+    vorpal.log(updatedRec);
+    let diffOut = { changes: [] };
+    if (dout) {
+      dout.forEach(d => {
+        let prop = d.path.join('.');
+        let df = {
+          property: prop,
+          old: d.lhs,
+          new: d.rhs
+        };
+        diffOut.changes.push(df);
+      })
+    }
+    diffOut.changeCount = diffOut.changes.length;
+    vorpal.log(diffOut);
   }
 }
 
@@ -238,6 +254,7 @@ const getFolio = async (endpoint) => {
       .get(url)
       .set('x-okapi-token', token)
       .set('accept', 'application/json')
+    originalRec = Object.assign({}, res.body);
     return res.body;
   } catch (e) {
     const errMsg = (e.response) ? e.response.text : e;
