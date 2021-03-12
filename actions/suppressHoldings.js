@@ -1,7 +1,3 @@
-metadata = {
-  endpoint: 'holdings-storage/holdings'
-};
-
 const action = async (id, steps) => {
   const url = `holdings-storage/holdings/${id}`;
   const record = await steps.goto(url);
@@ -11,4 +7,4 @@ const action = async (id, steps) => {
   return;
 }
 
-module.exports = { metadata, action };
+module.exports = { action };

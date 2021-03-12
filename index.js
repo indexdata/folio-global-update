@@ -40,7 +40,7 @@ const app = async () => {
   };
 
   vorpal
-    .command('login', `Log into FOLIO`)
+    .command('login', `Log into FOLIO.`)
     .action(async function (args, cb) {
       let self = this;
       let user;
@@ -109,7 +109,7 @@ const app = async () => {
         });
     });
 
-  vorpal.command('run', 'Run updates on FOLIO objects based on an action script and list of IDs')
+  vorpal.command('run', 'Run updates on FOLIO objects based on an action script and list of IDs.')
     .action(function (args, cb) {
       const self = this;
       if (!token) {
@@ -169,7 +169,7 @@ const app = async () => {
     });
   
   vorpal
-    .command('config', 'Change configuration')
+    .command('config', 'Change configuration.')
     .action(function (args, cb) {
       let self = this;
       return this.prompt({

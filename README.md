@@ -26,9 +26,21 @@ Run the CLI
 
 ### Configuration
 
-The global update app will look for configuration settings in the config.json file and must be located in the project directory.
+When starting the CLI, you will be asked to choose a configuration file.
 
-Here is an example config:
+```
+LIVE Not connected> config
+? Choose configuration: (Use arrow keys)
+❯ example.json 
+  folio-testing-no-pass.json 
+  folio-testing-no-user.json 
+  folio-testing.json 
+  indexdata-test.json 
+  ──────────────
+  Cancel 
+```
+
+The configuration files are located in the `configs` directory.  There is an example.config file included with this project.  Copy it to another fileanme and change it to your liking.  Here is an example configuration:
 
 ```
 {
@@ -39,7 +51,6 @@ Here is an example config:
   "inputPath": "data",
   "actionsPath": "actions",
   "logPath": "log",
-  "savePath": "saved",
   "errPath": "errors",
   "testLimit": 5
 }
@@ -52,51 +63,54 @@ Here is an example config:
 - `inputPath` -- where the CLI will find files of object IDs [ required ]
 - `actionsPath` -- the location of update action files [ required ]
 - `logPath` -- store logs in this directory [ optional ]
-- `savePath` -- save original (unchanged) records here. This is useful for "rolling back" unwanted updates. [ optional ]
-- `errPath` -- log failed records here.  [ optional ]
+- `errPath` -- log failed IDs here.  [ optional ]
 - `testLimit` -- the number of IDs to process while in TEST mode. [ required when in TEST mode ]
+
+NOTE: If you do not include a username or password, you will be prompted when running the `login` command.
 
 ### CLI functions
 
 Type `help` to display all commands.
 
 ```
-Not connected> help
+TEST Not connected> help
 
   Commands:
 
     help [command...]  Provides help for a given command.
     exit               Exits application.
-    login              Log into FOLIO at https://localhost:9130
-    mode               Choose between TEST or LIVE mode (default "LIVE")
-    update             Update FOLIO objects based on an action script and list of IDs
-    show <config>      Show okapi, tenant, or username settings.
+    login              Log into FOLIO.
+    logout             Destroy current auth token.
+    mode               Choose between TEST or LIVE modes.
+    run                Run updates on FOLIO objects based on an action script and list of IDs.
+    settings           Show app settings.
+    config             Change configuration.
 
-Not connected> 
+TEST Not connected> 
 ```
 
 After a successful login, the prompt will display the mode and OKAPI host.  If not, the prompt will display `Not connected`.
 
 When in TEST mode, no changes will be PUT to the OKAPI endpoint.  Use this mode for testing the output of the selected action script.
 
-Action scripts are JavaScripts that make a change to a FOLIO object.  In its simplist form, the action will change a single, string field:
+Action scripts are JavaScript that make a change to a FOLIO object.  These files should be stored in the `actions` directory.  In their simplist form, an action will change a single, string field:
 
 ```
-metadata = {
-  endpoint: 'holdings-storage/holdings'
-};
-
-const action = (record) => {
+const action = async (id, steps) => {
+  const url = `holdings-storage/holdings/${id}`;
+  const record = await steps.goto(url);
   record.discoverySuppress = true;
-  return record;
+  steps.preview(record);
+  await steps.send(url, record);
+  return;
 }
 
-module.exports = { metadata, action };
+module.exports = { action };
 ```
 
-The above action script will suppress a holdings record.  The metadata object contains the required property `endpoint`.  The CLI will use this endpoint for getting a record to update.  Likewise it will put the changes to the same endpoint.
+The above action script will suppress a holdings record.
 
-To make this all happen, run the `update` command which will subsequently prompt you to choose an action script:
+To make this all happen, execute the `run` command which will subsequently prompt you to choose an action script:
 
 ```
 LIVE folio-testing-okapi.dev.folio.org> update
@@ -119,4 +133,3 @@ LIVE folio-testing-okapi.dev.folio.org> update
 ```
 
 Hitting enter will start the updating of records and log the progress to the screen (and the logPath, if set).
-
