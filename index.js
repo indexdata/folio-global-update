@@ -13,6 +13,7 @@ let config = {};
 let token = null;
 let host = null;
 let originalRec = {};
+let steps = {};
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -28,7 +29,15 @@ const defaults = {
   config: false,
 }
 
+
 const app = async () => {
+
+  steps = {
+    goto: getFolio,
+    send: putFolio,
+    preview: preview,
+  };
+
   vorpal
     .command('login', `Log into FOLIO`)
     .action(async function (args, cb) {
@@ -194,12 +203,7 @@ const app = async () => {
 
 const runAction = async (self, scriptPath, inFile) => {
 
-  const steps = {
-    goto: getFolio,
-    send: putFolio,
-    preview: preview,
-    term: self
-  };
+  steps.term = self;
 
   const script = require(scriptPath);
 
@@ -209,20 +213,27 @@ const runAction = async (self, scriptPath, inFile) => {
     input: readStream,
     crlfDelay: Infinity
   });
-
+  const stats = {
+    success: 0,
+    failed: 0,
+    total: 0,
+  }
   let line = 0;
   for await (let id of rl) {
     line++;
     self.log(chalk.bold(`[${line}] Processing ${id}`));
     try {
       await script.action(id, steps);
+      stats.success++;
     } catch (e) {
       self.log(chalk.red(e));
+      stats.failed++;
     }
     if (work.mode === 'TEST' && line === config.testLimit) break;
   }
-  
   delete require.cache[require.resolve(scriptPath)];
+  stats.total = line;
+  self.log(stats);
 }
 
 const preview = async (updatedRec) => {

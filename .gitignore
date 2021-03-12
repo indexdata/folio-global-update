@@ -1,6 +1,7 @@
+node_modules
 configs/*
 !configs/example.json
-node_modules
+data/*
 errors/*
 log/*
 saved/*
