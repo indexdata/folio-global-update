@@ -7,10 +7,11 @@ const chalk = require('chalk');
 const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
-const config = require('./config.json');
 
+const configsDir = './configs';
+let config = {};
 let token = null;
-const host = config.okapi.replace(/^http.+?\/\//, '');
+let host = null;
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -22,12 +23,13 @@ const setDelimiter = () => {
 setDelimiter();
 const defaults = {
   action: false,
-  fileName: false
+  fileName: false,
+  config: false,
 }
 
 const app = async () => {
   vorpal
-    .command('login', `Log into FOLIO at ${config.okapi}`)
+    .command('login', `Log into FOLIO`)
     .action(async function (args, cb) {
       let user;
       let pw;
@@ -58,11 +60,12 @@ const app = async () => {
         pw = config.password;
       }
       token = await getAuthToken(config.okapi, config.tenant, user, pw);
-      if (token.match(/Error/i)) {
-        this.log(token);
-      } else {
+      if (token) {
         work.status = host;
         setDelimiter();
+      } else {
+        token = null;
+        setDelimiter('Not connected');
       }
       cb();
     });
@@ -70,7 +73,7 @@ const app = async () => {
   vorpal
     .command('logout', 'Destroy current auth token.')
     .action(function (args, cb) {
-      token = '';
+      token = null;
       work.status = 'Not connected';
       setDelimiter();
       cb();
@@ -94,7 +97,7 @@ const app = async () => {
         });
     });
 
-  vorpal.command('update', 'Update FOLIO objects based on an action script and list of IDs')
+  vorpal.command('run', 'Run updates on FOLIO objects based on an action script and list of IDs')
     .action(function (args, cb) {
       const self = this;
       if (!token) {
@@ -144,7 +147,6 @@ const app = async () => {
       });
     });
 
-  
   vorpal  
     .command('settings', `Show app settings.`)
     .action(function (args, cb) {
@@ -153,6 +155,40 @@ const app = async () => {
       this.log(configView);
       cb();
     });
+  
+  vorpal
+    .command('config', 'Change configuration')
+    .action(function (args, cb) {
+      let self = this;
+      return this.prompt({
+          type: 'list',
+          name: 'config',
+          default: defaults.config,
+          message: 'Choose configuration:',
+          choices: function () {
+            const sel = fs.readdirSync(configsDir);
+            sel.push(new inquirer.Separator());
+            sel.push('Cancel');
+            return sel;
+          }
+      },
+        async function(choice) {
+          if (choice.config === 'Cancel') {
+            if (!config.okapi) vorpal.exec('exit');
+            cb();
+          } else {
+            config = require(`${configsDir}/${choice.config}`);
+            host = config.okapi.replace(/^http.+?\/\//, '');
+            token = '';
+            work.status = 'Not connected';
+            setDelimiter();
+            cb();
+          }
+      });
+    });
+
+  vorpal.exec('config', function () {
+  });
 }
 
 const runAction = async (self, scriptPath, inFile) => {
@@ -241,11 +277,8 @@ const getAuthToken = async (okapi, tenant, username, password) => {
       .set('content-type', 'application/json');
     return res.headers['x-okapi-token'];
   } catch (e) {
-    if (e.response) {
-      e.response.text;
-    } else {
-      return e;
-    }
+    const errMsg = (e.response) ? e.response.text : e;
+    vorpal.log(chalk.red(errMsg));
   }
 };
 

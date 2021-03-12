@@ -1,4 +1,5 @@
-config.json
+configs/*
+!configs/example.json
 node_modules
 errors/*
 log/*
