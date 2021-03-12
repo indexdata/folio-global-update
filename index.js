@@ -14,6 +14,7 @@ let token = null;
 let host = null;
 let originalRec = {};
 let steps = {};
+let logger = {};
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -215,6 +216,27 @@ const runAction = async (self, scriptPath, inFile) => {
     crlfDelay: Infinity
   });
 
+  const pp = path.parse(scriptPath);
+  if (config.logPath && work.mode !== 'TEST') {
+    if (!fs.existsSync(config.logPath)) fs.mkdirSync(config.logPath);
+    const lpath = `${config.logPath}/${pp.name}.log`;
+    const logout = fs.createWriteStream(lpath);
+    logger = new Console({ stdout: logout });
+  } else {
+    logger = { log: () => {} };
+  }
+
+  let failer = {};
+  if (config.errPath && work.mode !== 'TEST') {
+    if (!fs.existsSync(config.errPath)) fs.mkdirSync(config.errPath);
+    const pp = path.parse(scriptPath);
+    const spath = `${config.errPath}/${pp.name}.txt`;
+    const sout = fs.createWriteStream(spath);
+    failer = new Console({ stdout: sout });
+  } else {
+    failer = { log: () => {} };
+  }
+
   const startTime = Date.now();
   const stats = {
     start: startTime,
@@ -228,12 +250,17 @@ const runAction = async (self, scriptPath, inFile) => {
   let line = 0;
   for await (let id of rl) {
     line++;
-    self.log(chalk.bold(`[${line}] Processing ${id}`));
+    let logLine = `[${line}] Processing ${id}`;
+    self.log(chalk.bold(logLine));
+    logger.log(logLine);
     try {
       await script.action(id, steps);
       stats.success++;
     } catch (e) {
       self.log(chalk.red(e));
+      let logLine = (e.message) ? e.message : e;
+      logger.log(`  ERROR ${logLine}`);
+      failer.log(id);
       stats.failed++;
     }
     if (work.mode === 'TEST' && line === config.testLimit) break;
@@ -246,6 +273,7 @@ const runAction = async (self, scriptPath, inFile) => {
     stats.end = new Date(endTime).toUTCString();
     stats.seconds = (endTime - startTime) / 1000;
     self.log(stats);
+    logger.log(stats);
   }
 }
 
@@ -272,7 +300,9 @@ const preview = async (updatedRec) => {
 
 const getFolio = async (endpoint) => {
   const url = `${config.okapi}/${endpoint}`;
-  steps.term.log(`  GET ${url}`);
+  let logLine = `  GET ${url}`;
+  steps.term.log(logLine);
+  logger.log(logLine);
   try {
     let res = await superagent
       .get(url)
@@ -289,7 +319,9 @@ const getFolio = async (endpoint) => {
 const putFolio = async (endpoint, payload) => {
   if (work.mode === 'LIVE') {
     const url = `${config.okapi}/${endpoint}`;
-    steps.term.log(`  PUT ${url}`);
+    let logLine = `  PUT ${url}`;
+    steps.term.log(logLine);
+    logger.log(logLine);
     try {
       let res = await superagent
         .put(url)
