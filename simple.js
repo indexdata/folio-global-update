@@ -7,14 +7,10 @@ const chalk = require('chalk');
 const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
+const config = require('./config.json');
 
-const configsDir = './configs';
-let config = {};
 let token = null;
-let host = null;
-let originalRec = {};
-let steps = {};
-let logger = {};
+const host = config.okapi.replace(/^http.+?\/\//, '');
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -26,23 +22,13 @@ const setDelimiter = () => {
 setDelimiter();
 const defaults = {
   action: false,
-  fileName: false,
-  config: false,
+  fileName: false
 }
 
-
 const app = async () => {
-
-  steps = {
-    goto: getFolio,
-    send: putFolio,
-    preview: preview,
-  };
-
   vorpal
-    .command('login', `Log into FOLIO.`)
+    .command('login', `Log into FOLIO at ${config.okapi}`)
     .action(async function (args, cb) {
-      let self = this;
       let user;
       let pw;
       if (!config.username) {
@@ -71,13 +57,12 @@ const app = async () => {
       } else {
         pw = config.password;
       }
-      token = await getAuthToken(config.okapi, config.tenant, user, pw, self);
-      if (token) {
+      token = await getAuthToken(config.okapi, config.tenant, user, pw);
+      if (token.match(/Error/i)) {
+        this.log(token);
+      } else {
         work.status = host;
         setDelimiter();
-      } else {
-        token = null;
-        setDelimiter('Not connected');
       }
       cb();
     });
@@ -85,7 +70,7 @@ const app = async () => {
   vorpal
     .command('logout', 'Destroy current auth token.')
     .action(function (args, cb) {
-      token = null;
+      token = '';
       work.status = 'Not connected';
       setDelimiter();
       cb();
@@ -109,7 +94,7 @@ const app = async () => {
         });
     });
 
-  vorpal.command('run', 'Run updates on FOLIO objects based on an action script and list of IDs.')
+  vorpal.command('update', 'Update FOLIO objects based on an action script and list of IDs')
     .action(function (args, cb) {
       const self = this;
       if (!token) {
@@ -153,12 +138,13 @@ const app = async () => {
           let scriptPath = `${config.actionsPath}/${choice.action}`;
           if (!scriptPath.match(/^(\.\/|\/)/)) scriptPath = `./${scriptPath}`;
           const inFile = `${config.inputPath}/${choice.fileName}`;
-          runAction(self, scriptPath, inFile)
+          getPutFolio(self, scriptPath, inFile)
           cb();
         }
       });
     });
 
+  
   vorpal  
     .command('settings', `Show app settings.`)
     .action(function (args, cb) {
@@ -167,56 +153,22 @@ const app = async () => {
       this.log(configView);
       cb();
     });
-  
-  vorpal
-    .command('config', 'Change configuration.')
-    .action(function (args, cb) {
-      let self = this;
-      return this.prompt({
-          type: 'list',
-          name: 'config',
-          default: defaults.config,
-          message: 'Choose configuration:',
-          choices: function () {
-            const sel = fs.readdirSync(configsDir);
-            sel.push(new inquirer.Separator());
-            sel.push('Cancel');
-            return sel;
-          }
-      },
-        async function(choice) {
-          if (choice.config === 'Cancel') {
-            if (!config.okapi) vorpal.exec('exit');
-            cb();
-          } else {
-            config = require(`${configsDir}/${choice.config}`);
-            host = config.okapi.replace(/^http.+?\/\//, '');
-            token = '';
-            work.status = 'Not connected';
-            setDelimiter();
-            cb();
-          }
-      });
-    });
-
-  vorpal.exec('config', function () {
-  });
 }
 
-const runAction = async (self, scriptPath, inFile) => {
-
-  steps.term = self;
-
+const getPutFolio = async (self, scriptPath, inFile) => {
+  
   const script = require(scriptPath);
+  const endpoint = script.metadata.endpoint;
+  const postPoint = script.metadata.postEndpoint;
 
-  const readStream = fs.createReadStream(inFile);
-
-  const rl = readline.createInterface({
-    input: readStream,
-    crlfDelay: Infinity
-  });
+  const makeUrl = (endpoint, id) => {
+    let ep = (endpoint.match(/\{id\}/)) ? endpoint.replace(/\{id\}/, id) : `${endpoint}/${id}`;
+    let url = `${config.okapi}/${ep}`;
+    return url;
+  }
 
   const pp = path.parse(scriptPath);
+  let logger = {};
   if (config.logPath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.logPath)) fs.mkdirSync(config.logPath);
     const lpath = `${config.logPath}/${pp.name}.log`;
@@ -226,119 +178,172 @@ const runAction = async (self, scriptPath, inFile) => {
     logger = { log: () => {} };
   }
 
+  let saver = {};
+  if (config.savePath && work.mode !== 'TEST') {
+    if (!fs.existsSync(config.savePath)) fs.mkdirSync(config.savePath);
+    const pp = path.parse(scriptPath);
+    const spath = `${config.savePath}/${pp.name}.jsonl`;
+    const sout = fs.createWriteStream(spath);
+    saver = new Console({ stdout: sout });
+  } else {
+    saver = { log: () => {} };
+  }
+
   let failer = {};
   if (config.errPath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.errPath)) fs.mkdirSync(config.errPath);
     const pp = path.parse(scriptPath);
-    const spath = `${config.errPath}/${pp.name}.txt`;
+    const spath = `${config.errPath}/${pp.name}.jsonl`;
     const sout = fs.createWriteStream(spath);
     failer = new Console({ stdout: sout });
   } else {
     failer = { log: () => {} };
   }
 
-  const startTime = Date.now();
-  const stats = {
-    start: startTime,
-    end: '',
-    seconds: '',
-    success: 0,
-    failed: 0,
-    total: 0,
-  }
+  const readStream = fs.createReadStream(inFile);
 
-  let line = 0;
-  for await (let id of rl) {
-    line++;
-    let logLine = `[${line}] Processing ${id}`;
-    self.log(chalk.bold(logLine));
-    logger.log(logLine);
-    try {
-      await script.action(id, steps);
-      stats.success++;
-    } catch (e) {
-      self.log(chalk.red(e));
-      let logLine = (e.message) ? e.message : e;
-      logger.log(`  ERROR ${logLine}`);
-      failer.log(id);
-      stats.failed++;
-    }
-    if (work.mode === 'TEST' && line === config.testLimit) break;
+  const rl = readline.createInterface({
+    input: readStream,
+    crlfDelay: Infinity
+  });
+
+  const startTime = Date.now();
+  
+  let putUrl;
+  const stats = {
+    success: 0,
+    fail: 0
   }
-  delete require.cache[require.resolve(scriptPath)];
-  stats.total = line;
-  if (work.mode !== 'TEST') {
+  let c = 0;
+  for await (let id of rl) {
+    let eMsg = null;
+    let rec;
+    let oldRecString;
+    let oldRec;
+    c++;
+    if (endpoint) {
+      let url = makeUrl(endpoint, id);
+      let getMsg = `[${c}] GET ${url}`;
+      self.log(getMsg);
+      logger.log(getMsg)
+      putUrl = url;
+      try {
+        let res = await superagent
+          .get(url)
+          .set('x-okapi-token', token)
+          .set('accept', 'application/json')
+        oldRecString = JSON.stringify(res.body); 
+        oldRec = JSON.parse(oldRecString);
+        rec = res.body;
+      } catch (e) {
+        eMsg = (e.response) ? e.response.text : e;
+      }
+    }
+
+    if (rec || !endpoint) {
+      if (work.mode !== 'TEST' && rec.id) saver.log(oldRecString);
+      let updatedRec = {};
+      try {
+        updatedRec = await script.action(rec);
+      } catch (e) {
+        self.log(e);
+      }
+      if (work.mode === 'TEST') {
+        let dout = diff(oldRec, updatedRec);
+        self.log(updatedRec);
+        let diffOut = { changes: [] };
+        if (dout) {
+          dout.forEach(d => {
+            let prop = d.path.join('.');
+            let df = {
+              property: prop,
+              old: d.lhs,
+              new: d.rhs
+            };
+            diffOut.changes.push(df);
+          })
+        }
+        diffOut.changeCount = diffOut.changes.length;
+        self.log(diffOut);
+        if (c === config.testLimit) break;
+      } else {
+        if (postPoint) {
+          let url = makeUrl(postPoint, id);
+          try {
+            let pMsg = `[${c}] POST ${url}`; 
+            self.log(pMsg);
+            logger.log(pMsg);
+            let res = await superagent
+              .post(url)
+              .send(updatedRec)
+              .set('x-okapi-token', token)
+              .set('accept', 'application/json')
+              .set('accept', 'text/plain')
+              .set('content-type', 'application/json')
+            stats.success++
+          } catch (e) {
+            eMsg = (e.response) ? e.response.text : e;
+            failer.log(JSON.stringify(updatedRec));
+          }
+        } else {
+          try {
+            let url = putUrl;
+            let pMsg = `[${c}] PUT ${url}`;
+            self.log(chalk.green(pMsg));
+            logger.log(pMsg);
+            let res = await superagent
+              .put(url)
+              .send(updatedRec)
+              .set('x-okapi-token', token)
+              .set('accept', 'application/json')
+              .set('accept', 'text/plain')
+              .set('content-type', 'application/json')
+            stats.success++
+          } catch (e) {
+            eMsg = (e.response) ? e.response.text : e;
+            failer.log(JSON.stringify(updatedRec));
+          }
+        }
+      }
+    }
+    if (eMsg) {
+      eMsg = `ERROR ${eMsg}`;
+      self.log(chalk.red(eMsg));
+      logger.log(eMsg);
+      stats.fail++;
+    }
+  }
+  if (!work.mode === 'TEST') {
     const endTime = Date.now();
+    let seconds = (endTime - startTime) / 1000;
+    stats.total = c;
     stats.start = new Date(startTime).toUTCString();
     stats.end = new Date(endTime).toUTCString();
-    stats.seconds = (endTime - startTime) / 1000;
+    stats.seconds = seconds;
     self.log(stats);
     logger.log(stats);
   }
-}
-
-const preview = async (updatedRec) => {
-  if (work.mode === 'TEST') {
-    let dout = diff(originalRec, updatedRec);
-    steps.term.log(updatedRec);
-    let diffOut = { changes: [] };
-    if (dout) {
-      dout.forEach(d => {
-        let prop = d.path.join('.');
-        let df = {
-          property: prop,
-          old: d.lhs,
-          new: d.rhs
-        };
-        diffOut.changes.push(df);
-      })
-    }
-    diffOut.changeCount = diffOut.changes.length;
-    steps.term.log(diffOut);
-  }
+  delete require.cache[require.resolve(scriptPath)];
 }
 
 const getFolio = async (endpoint) => {
   const url = `${config.okapi}/${endpoint}`;
-  let logLine = `  GET ${url}`;
-  steps.term.log(logLine);
-  logger.log(logLine);
   try {
     let res = await superagent
       .get(url)
       .set('x-okapi-token', token)
       .set('accept', 'application/json')
-    originalRec = Object.assign({}, res.body);
     return res.body;
   } catch (e) {
-    const errMsg = (e.response) ? e.response.text : e;
-    throw new Error(errMsg);
-  }
-}
-
-const putFolio = async (endpoint, payload) => {
-  if (work.mode === 'LIVE') {
-    const url = `${config.okapi}/${endpoint}`;
-    let logLine = `  PUT ${url}`;
-    steps.term.log(logLine);
-    logger.log(logLine);
-    try {
-      let res = await superagent
-        .put(url)
-        .send(payload)
-        .set('x-okapi-token', token)
-        .set('accept', 'application/json')
-        .set('accept', 'text/plain')
-        .set('content-type', 'application/json')
-      return res.body;
-    } catch (e) {
-      const errMsg = (e.response) ? e.response.text : e;
-      throw new Error(errMsg);
+    if (e.response) {
+      return e.response.text;
+    } else {
+      return e;
     }
   }
 }
 
-const getAuthToken = async (okapi, tenant, username, password, self) => {
+const getAuthToken = async (okapi, tenant, username, password) => {
   const authUrl = okapi + '/bl-users/login'; 
   const authBody = `{"username": "${username}", "password": "${password}"}`;
   try {
@@ -350,8 +355,11 @@ const getAuthToken = async (okapi, tenant, username, password, self) => {
       .set('content-type', 'application/json');
     return res.headers['x-okapi-token'];
   } catch (e) {
-    const errMsg = (e.response) ? e.response.text : e;
-    self.log(chalk.red(errMsg));
+    if (e.response) {
+      return e.response.text;
+    } else {
+      return e;
+    }
   }
 };
 
