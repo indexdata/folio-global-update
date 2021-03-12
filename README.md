@@ -13,12 +13,6 @@ Installing with yarn.
 
 `$ yarn install`
 
-Copy config.example.json to config.json
-
-`$ cp config.example.json config.json`
-
-Update config.json to your liking (see "Configuration" below).
-
 Run the CLI
 
 `$ node .`
