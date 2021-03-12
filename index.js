@@ -214,11 +214,17 @@ const runAction = async (self, scriptPath, inFile) => {
     input: readStream,
     crlfDelay: Infinity
   });
+
+  const startTime = Date.now();
   const stats = {
+    start: startTime,
+    end: '',
+    seconds: '',
     success: 0,
     failed: 0,
     total: 0,
   }
+
   let line = 0;
   for await (let id of rl) {
     line++;
@@ -234,7 +240,13 @@ const runAction = async (self, scriptPath, inFile) => {
   }
   delete require.cache[require.resolve(scriptPath)];
   stats.total = line;
-  if (work.mode !== 'TEST') self.log(stats);
+  if (work.mode !== 'TEST') {
+    const endTime = Date.now();
+    stats.start = new Date(startTime).toUTCString();
+    stats.end = new Date(endTime).toUTCString();
+    stats.seconds = (endTime - startTime) / 1000;
+    self.log(stats);
+  }
 }
 
 const preview = async (updatedRec) => {
