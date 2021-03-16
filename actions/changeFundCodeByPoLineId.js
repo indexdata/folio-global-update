@@ -14,7 +14,7 @@ If status is "Open"
 
 const metadata = {
   name: "Change fund codes by PO line ID",
-  newFundId: '054869c7-84a9-46ec-9339-56ba033432e0',
+  newFundId: '8357b8f7-5756-49b8-b0be-4e32453270cc',
   newFundCode: 'TEST1'
 };
 
@@ -31,6 +31,7 @@ const action = async (id, steps) => {
       });
     }
   });
+  steps.preview(po);
   let previousStatus = po.workflowStatus;
   po.workflowStatus = 'Pending';
   await steps.send(poUrl, po);

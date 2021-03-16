@@ -280,7 +280,7 @@ const runAction = async (self, scriptPath, inFile) => {
 const preview = async (updatedRec) => {
   if (work.mode === 'TEST') {
     let dout = diff(originalRec, updatedRec);
-    steps.term.log(updatedRec);
+    steps.term.log(JSON.stringify(updatedRec, null, 2));
     let diffOut = { changes: [] };
     if (dout) {
       dout.forEach(d => {
@@ -308,7 +308,10 @@ const getFolio = async (endpoint) => {
       .get(url)
       .set('x-okapi-token', token)
       .set('accept', 'application/json')
-    originalRec = Object.assign({}, res.body);
+    if (work.mode === 'TEST') {
+      let bodyText = JSON.stringify(res.body);
+      originalRec = JSON.parse(bodyText);
+    }
     return res.body;
   } catch (e) {
     const errMsg = (e.response) ? e.response.text : e;
