@@ -36,6 +36,8 @@ const app = async () => {
   steps = {
     goto: getFolio,
     send: putFolio,
+    post: postFolio,
+    delete: deleteFolio,
     preview: preview,
   };
 
@@ -107,6 +109,22 @@ const app = async () => {
           setDelimiter();
           cb();
         });
+    });
+
+  vorpal
+    .command('live', 'Switch to LIVE mode')
+    .action(function (args, cb) {
+      work.mode = 'LIVE';
+      setDelimiter();
+      cb();
+    });
+
+  vorpal
+    .command('test', 'Switch to TEST mode')
+    .action(function (args, cb) {
+      work.mode = 'TEST';
+      setDelimiter();
+      cb();
     });
 
   vorpal.command('run', 'Run updates on FOLIO objects based on an action script and list of IDs.')
@@ -278,23 +296,27 @@ const runAction = async (self, scriptPath, inFile) => {
 }
 
 const preview = async (updatedRec) => {
-  if (work.mode === 'TEST') {
-    let dout = diff(originalRec, updatedRec);
-    steps.term.log(JSON.stringify(updatedRec, null, 2));
-    let diffOut = { changes: [] };
-    if (dout) {
-      dout.forEach(d => {
-        let prop = d.path.join('.');
-        let df = {
-          property: prop,
-          old: d.lhs,
-          new: d.rhs
-        };
-        diffOut.changes.push(df);
-      })
+  try {
+    if (work.mode === 'TEST') {
+      let dout = diff(originalRec, updatedRec);
+      steps.term.log(JSON.stringify(updatedRec, null, 2));
+      let diffOut = { changes: [] };
+      if (dout) {
+        dout.forEach(d => {
+          let prop = d.path.join('.');
+          let df = {
+            property: prop,
+            old: d.lhs,
+            new: d.rhs
+          };
+          diffOut.changes.push(df);
+        })
+      }
+      diffOut.changeCount = diffOut.changes.length;
+      steps.term.log(diffOut);
     }
-    diffOut.changeCount = diffOut.changes.length;
-    steps.term.log(diffOut);
+  } catch (e) {
+    vorpal.log(e);
   }
 }
 
@@ -333,6 +355,47 @@ const putFolio = async (endpoint, payload) => {
         .set('accept', 'application/json')
         .set('accept', 'text/plain')
         .set('content-type', 'application/json')
+      return res.body;
+    } catch (e) {
+      const errMsg = (e.response) ? e.response.text : e;
+      throw new Error(errMsg);
+    }
+  }
+}
+
+const postFolio = async (endpoint, payload) => {
+  if (work.mode === 'LIVE') {
+    const url = `${config.okapi}/${endpoint}`;
+    let logLine = `  POST ${url}`;
+    steps.term.log(logLine);
+    logger.log(logLine);
+    try {
+      let res = await superagent
+        .post(url)
+        .send(payload)
+        .set('x-okapi-token', token)
+        .set('accept', 'application/json')
+        .set('accept', 'text/plain')
+        .set('content-type', 'application/json')
+      return res.body;
+    } catch (e) {
+      const errMsg = (e.response) ? e.response.text : e;
+      throw new Error(errMsg);
+    }
+  }
+}
+
+const deleteFolio = async (endpoint) => {
+  if (work.mode === 'LIVE') {
+    const url = `${config.okapi}/${endpoint}`;
+    let logLine = `  POST ${url}`;
+    steps.term.log(logLine);
+    logger.log(logLine);
+    try {
+      let res = await superagent
+        .delete(url)
+        .set('x-okapi-token', token)
+        .set('accept', 'text/plain')
       return res.body;
     } catch (e) {
       const errMsg = (e.response) ? e.response.text : e;
