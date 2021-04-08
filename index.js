@@ -3,10 +3,10 @@ const superagent = require('superagent');
 const vorpal = require('vorpal')();
 const inquirer = require('inquirer');
 const readline = require('readline');
-const chalk = require('chalk');
 const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
+const chalk = vorpal.chalk;
 
 const configsDir = './configs';
 let config = {};
@@ -40,6 +40,7 @@ const app = async () => {
     delete: deleteFolio,
     preview: preview,
   };
+
 
   vorpal
     .command('login', `Log into FOLIO.`)
@@ -160,10 +161,19 @@ const app = async () => {
           when: function (answers) {
             return answers.action !== 'Cancel';
           }
+        },
+        {
+          type: 'confirm',
+          name: 'continue',
+          default: true,
+          message: 'Run action?',
+          when: function (answers) {
+            return !(answers.fileName === 'Cancel' || answers.action === 'Cancel');
+          }
         }
       ],
       async function (choice) {
-        if (choice.action === 'Cancel' || choice.fileName === 'Cancel') {
+        if (choice.action === 'Cancel' || choice.fileName === 'Cancel' || choice.continue === false) {
           cb();
         } else {
           defaults.action = choice.action;
@@ -388,7 +398,7 @@ const postFolio = async (endpoint, payload) => {
 const deleteFolio = async (endpoint) => {
   if (work.mode === 'LIVE') {
     const url = `${config.okapi}/${endpoint}`;
-    let logLine = `  POST ${url}`;
+    let logLine = `  DELETE ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
     try {
