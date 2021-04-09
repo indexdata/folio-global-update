@@ -1,53 +1,39 @@
-/* 
-If status is "Open"
-
-1. GET orders/composite-orders/{poId}
-
-2. Change workflowStatus to "Pending"
-   PUT orders/composite-orders/{poId}
-
-3. Change compositePoLines[0].fundDistribution.fundId to new Fund ID.
-   Change compositePoLines[0].fundDistribution.code to new Fund code
-   Change workflowStatus to "Open"
-   PUT orders/composite-orders/{poId}
+/*
+  This script will change the fundId and fundCode of a PO line.
+  In other words, change funds.
 */
 
 const metadata = {
   name: "Change fund codes by PO line ID",
-  newFundId: '8357b8f7-5756-49b8-b0be-4e32453270cc',
-  newFundCode: 'TEST1'
+  // newFundId: '3663b6b3-7728-4815-ab94-4816bbba7908',
+  // newFundCode: '4SET'
+  newFundId: '1bdbf0f1-7ab6-4a7d-8de1-fbe9ba23f25c',
+  newFundCode: 'ENG'
 };
 
 const action = async (id, steps) => {
   // get po line
-  let lineUrl = `orders-storage/po-lines/${id}`
+  let lineUrl = `orders/order-lines/${id}`
   let poLine = await steps.goto(lineUrl);
-  
-  // get order
-  poUrl = `orders/composite-orders/${poLine.purchaseOrderId}`;
-  let po = await steps.goto(poUrl);
 
-  // change po line in composite order
-  po.compositePoLines.forEach(c => {
-    if (c.id === id) {
-      c.fundDistribution.forEach(f => {
-        f.fundId = metadata.newFundId;
-        f.code = metadata.newFundCode;
-      });
-    }
-  })
+  // change the fund distribution of po line
+  poLine.fundDistribution.forEach(f => {
+    f.fundId = metadata.newFundId;
+    f.code = metadata.newFundCode;
+  });
 
-  // unopen order
-  po.workflowStatus = 'Pending';
-  // view status change
-  steps.preview(po);
+  // add locations (for testing purposes)
+  if (poLine.locations && poLine.locations.length === 0) {
+    steps.term.log("Adding locations object...");
+    poLine.locations = [ { locationId: '7677cfcf-65fd-54bd-bd97-411ea418df9f', quantityPhysical: 1} ];
+  }
+
+  steps.preview(poLine);
+
   // put changes
-  await steps.send(poUrl, po);
+  await steps.send(lineUrl, poLine);
 
-  // open order
-  po.workflowStatus = 'Open';
-  await steps.send(poUrl, po);
   return;
 } 
 
-module.exports = { metadata, action };
+module.exports = { action };
