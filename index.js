@@ -330,7 +330,7 @@ const preview = async (updatedRec) => {
   }
 }
 
-const getFolio = async (endpoint) => {
+const getFolio = async (endpoint, noDiff) => {
   const url = `${config.okapi}/${endpoint}`;
   let logLine = `  GET ${url}`;
   steps.term.log(logLine);
@@ -340,8 +340,8 @@ const getFolio = async (endpoint) => {
       .get(url)
       .set('x-okapi-token', token)
       .set('accept', 'application/json')
-    if (work.mode === 'TEST') {
-      let bodyText = JSON.stringify(res.body);
+    if (work.mode === 'TEST' && !noDiff) {
+      bodyText = JSON.stringify(res.body);
       originalRec = JSON.parse(bodyText);
     }
     return res.body;
