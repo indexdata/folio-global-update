@@ -170,7 +170,7 @@ const app = async () => {
     });
 
   vorpal  
-    .command('settings', `Show app settings.`)
+    .command('settings', `Show current config settings.`)
     .action(function (args, cb) {
       const configView = Object.assign({}, config);
       configView.password = '<hidden>';
