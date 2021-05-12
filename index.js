@@ -95,24 +95,6 @@ const app = async () => {
     });
 
   vorpal
-    .command('mode', 'Choose between TEST or LIVE modes.')
-    .action(function (args, cb) {
-      return this.prompt(
-        {
-          type: 'list',
-          name: 'mode',
-          default: work.mode,
-          message: 'Choose mode:',
-          choices: [ 'LIVE', 'TEST' ]
-        },
-        async function (choice) {
-          work.mode = choice.mode;
-          setDelimiter();
-          cb();
-        });
-    });
-
-  vorpal
     .command('live', 'Switch to LIVE mode')
     .action(function (args, cb) {
       work.mode = 'LIVE';
