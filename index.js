@@ -277,6 +277,7 @@ const runAction = async (self, scriptPath, inFile) => {
 
   let line = 0;
   for await (let id of rl) {
+    id = id.replace(/^"|"$/g, '');
     line++;
     let logLine = `[${line}] Processing ${id}`;
     self.log(chalk.bold(logLine));
