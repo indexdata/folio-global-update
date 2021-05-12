@@ -8,15 +8,18 @@
 const action = async (line, steps) => {
   let [ id, value ] = line.split('\t');
   const url = `holdings-storage/holdings/${id}`;
+  let found = false;
   const record = await steps.goto(url);
   if (record.notes === undefined) record.notes = [];
   if (record.notes.length > 0) {
     record.notes.forEach(n => {
       if (n.holdingsNoteTypeId === '88914775-f677-4759-b57b-1a33b90b24e0') {
         n.note = value;
+        found = true;
       }
     });
-  } else {
+  }
+  if (!found) {
     let note = {
       note: value,
       staffOnly: false,
