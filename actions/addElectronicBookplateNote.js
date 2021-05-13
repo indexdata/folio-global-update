@@ -5,6 +5,11 @@
   existing note. 
 */
 
+const prompt = {
+  text: 'Enter note text',
+  name: 'noteText'
+}
+
 const action = async (line, steps) => {
   let [ id, value ] = line.split('\t');
   const url = `holdings-storage/holdings/${id}`;
@@ -32,4 +37,4 @@ const action = async (line, steps) => {
   return;
 }
 
-module.exports = { action };
+module.exports = { action, prompt };

@@ -167,8 +167,8 @@ const app = async () => {
           cb();
         }
       });
-    });
-
+    })
+    
   vorpal  
     .command('settings', `Show current config settings.`)
     .action(function (args, cb) {
@@ -218,6 +218,14 @@ const runAction = async (self, scriptPath, inFile) => {
   steps.term = self;
 
   const script = require(scriptPath);
+  if (script.prompt) {
+    await inquirer.prompt({
+      type: 'list',
+      name: 'beverage',
+      message: 'And your favorite beverage?',
+      choices: ['Pepsi', 'Coke', '7up', 'Mountain Dew', 'Red Bull'],
+    });
+  }
 
   const readStream = fs.createReadStream(inFile);
 
