@@ -1,23 +1,23 @@
 const action = async (line, steps) => {
   if (line.match(/^\d/)) {
     let [ epn, bc, other ] = line.split(/\t/);
-    const url = `item-storage/items?query=hrid==${epn}`;
-    const res = await steps.goto(url);
-    if (res.items[0]) {
-      let item = res.items[0];
-      let iid = item.id;
-      let hid = item.holdingsRecordId;
-      let bwid = await steps.uuidgen(iid);
+    const mainUrl = `item-storage/items?query=hrid==${epn}`;
+    const otherUrl = `item-storage/items?query=hrid==${other}`;
+    const mainRes = await steps.goto(mainUrl);
+    const otherRes = await steps.goto(otherUrl);
+    if (mainRes.items[0] && otherRes.items[0]) {
+      let mainItem = mainRes.items[0];
+      let otherItem = otherRes.items[0];
+      let iid = mainItem.id;
+      let hid = otherItem.holdingsRecordId;
+      let bwid = await steps.uuidgen(hid+iid);
       let bwObj = {
         id: bwid,
         holdingsRecordId: hid,
         itemId: iid
       }
-      // steps.term.log(bwObj);
       await steps.post('inventory-storage/bound-with-parts', bwObj);
     }
-    
-    // steps.preview(items);
   }
   return;
 }
