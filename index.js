@@ -16,6 +16,7 @@ let host = null;
 let originalRec = {};
 let steps = {};
 let logger = {};
+let saverNew = {};
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -249,6 +250,15 @@ const runAction = async (self, scriptPath, inFile) => {
     failer = { log: () => {} };
   }
 
+  if (config.savePath) {
+    if (!fs.existsSync(config.savePath)) fs.mkdirSync(config.savePath);
+    const spathNew = `${config.savePath}/${pp.name}.jsonl`;
+    const soutNew = fs.createWriteStream(spathNew);
+    saverNew = new Console({ stdout: soutNew });
+  } else {
+    saverNew = { log: () => { } };
+  }
+
   const startTime = Date.now();
   const stats = {
     start: startTime,
@@ -342,6 +352,7 @@ const putFolio = async (endpoint, payload) => {
     let logLine = `  PUT ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
+    saverNew.log(JSON.stringify(payload));
     try {
       let res = await superagent
         .put(url)
@@ -364,6 +375,7 @@ const postFolio = async (endpoint, payload) => {
     let logLine = `  POST ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
+    saverNew.log(JSON.stringify(payload));
     try {
       let res = await superagent
         .post(url)
