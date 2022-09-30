@@ -6,6 +6,7 @@ const readline = require('readline');
 const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
+const { v5: uuid } = require('uuid')
 const chalk = vorpal.chalk;
 
 const configsDir = './configs';
@@ -39,6 +40,7 @@ const app = async () => {
     post: postFolio,
     delete: deleteFolio,
     preview: preview,
+    uuidgen: uuidGen
   };
 
 
@@ -218,14 +220,6 @@ const runAction = async (self, scriptPath, inFile) => {
   steps.term = self;
 
   const script = require(scriptPath);
-  if (script.prompt) {
-    await inquirer.prompt({
-      type: 'list',
-      name: 'beverage',
-      message: 'And your favorite beverage?',
-      choices: ['Pepsi', 'Coke', '7up', 'Mountain Dew', 'Red Bull'],
-    });
-  }
 
   const readStream = fs.createReadStream(inFile);
 
@@ -403,6 +397,11 @@ const deleteFolio = async (endpoint) => {
       throw new Error(errMsg);
     }
   }
+}
+
+const uuidGen = async (text, ns) => {
+  if (!ns) ns = '00000000-0000-0000-0000-000000000000';
+  return uuid(text, ns);
 }
 
 const getAuthToken = async (okapi, tenant, username, password, self) => {
