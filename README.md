@@ -46,6 +46,7 @@ The configuration files are located in the `configs` directory.  There is an exa
   "actionsPath": "actions",
   "logPath": "log",
   "errPath": "errors",
+  "savePath": "saved",
   "testLimit": 5
 }
 ```
@@ -58,6 +59,7 @@ The configuration files are located in the `configs` directory.  There is an exa
 - `actionsPath` -- the location of update action files [ required ]
 - `logPath` -- store logs in this directory [ optional ]
 - `errPath` -- log failed IDs here.  [ optional ]
+- `savePath` -- save updated or created FOLIO objects to a file in this directory [ optional ]
 - `testLimit` -- the number of IDs to process while in TEST mode. [ required when in TEST mode ]
 
 NOTE: If you do not include a username or password, you will be prompted when running the `login` command.
