@@ -6,6 +6,7 @@ const readline = require('readline');
 const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
+const { v5: uuid } = require('uuid')
 const chalk = vorpal.chalk;
 
 const configsDir = './configs';
@@ -15,6 +16,7 @@ let host = null;
 let originalRec = {};
 let steps = {};
 let logger = {};
+let saverNew = {};
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -39,6 +41,7 @@ const app = async () => {
     post: postFolio,
     delete: deleteFolio,
     preview: preview,
+    uuidgen: uuidGen
   };
 
 
@@ -167,8 +170,8 @@ const app = async () => {
           cb();
         }
       });
-    });
-
+    })
+    
   vorpal  
     .command('settings', `Show current config settings.`)
     .action(function (args, cb) {
@@ -245,6 +248,15 @@ const runAction = async (self, scriptPath, inFile) => {
     failer = new Console({ stdout: sout });
   } else {
     failer = { log: () => {} };
+  }
+
+  if (config.savePath) {
+    if (!fs.existsSync(config.savePath)) fs.mkdirSync(config.savePath);
+    const spathNew = `${config.savePath}/${pp.name}.jsonl`;
+    const soutNew = fs.createWriteStream(spathNew);
+    saverNew = new Console({ stdout: soutNew });
+  } else {
+    saverNew = { log: () => { } };
   }
 
   const startTime = Date.now();
@@ -350,6 +362,7 @@ const putFolio = async (endpoint, payload) => {
     let logLine = `  PUT ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
+    saverNew.log(JSON.stringify(payload));
     try {
       let res = await superagent
         .put(url)
@@ -372,6 +385,7 @@ const postFolio = async (endpoint, payload) => {
     let logLine = `  POST ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
+    saverNew.log(JSON.stringify(payload));
     try {
       let res = await superagent
         .post(url)
@@ -405,6 +419,11 @@ const deleteFolio = async (endpoint) => {
       throw new Error(errMsg);
     }
   }
+}
+
+const uuidGen = async (text, ns) => {
+  if (!ns) ns = '00000000-0000-0000-0000-000000000000';
+  return uuid(text, ns);
 }
 
 const getAuthToken = async (okapi, tenant, username, password, self) => {
