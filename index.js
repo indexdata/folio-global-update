@@ -51,7 +51,7 @@ const app = async () => {
     goto: 'goto(url) -- sends a GET request to <url> and returns JSON data',
     send: 'send(url, json) -- sends a PUT request to <url>, requires a <json> object. Returns JSON',
     post: 'post(url, json) -- sends a POST request to <url>, requires a <json> object. Returns JSON',
-    delete: 'delete(url) -- sends a DELETE require to <url>',
+    delete: 'delete(url) -- sends a DELETE request to <url>',
     preview: 'preview(updatedRecord, [ originalRecord ]) -- displays the difference between original and updated object',
     uuidgen: 'uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace',
     putCache: 'putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued',

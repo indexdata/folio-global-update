@@ -110,7 +110,7 @@ Here is a current list of action steps:
         goto(url) -- sends a GET request to <url> and returns JSON data
         send(url, json) -- sends a PUT request to <url>, requires a <json> object. Returns JSON
         post(url, json) -- sends a POST request to <url>, requires a <json> object. Returns JSON
-        delete(url) -- sends a DELETE require to <url>
+        delete(url) -- sends a DELETE request to <url>
         preview(updatedRecord, [ originalRecord ]) -- displays the difference between original and updated object
         uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace
         putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued
