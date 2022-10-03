@@ -47,6 +47,17 @@ const app = async () => {
     getCache: getCache
   };
 
+  stepsHelp = {
+    goto: 'goto(url) -- sends a GET request to <url> and returns JSON data',
+    send: 'send(url, json) -- sends a PUT request to <url>, requires a <json> object. Returns JSON',
+    post: 'post(url, json) -- sends a POST request to <url>, requires a <json> object. Returns JSON',
+    delete: 'delete(url) -- sends a DELETE require to <url>',
+    preview: 'preview(updatedRecord, [ originalRecord ]) -- displays the difference between original and updated object',
+    uuidgen: 'uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace',
+    putCache: 'putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued',
+    getCache: 'readCache(key) -- fetches value from cache based on key'
+  };
+
 
   vorpal
     .command('login', `Log into FOLIO.`)
@@ -115,13 +126,6 @@ const app = async () => {
       setDelimiter();
       cb();
     });
-  
-  vorpal
-    .command('empty-cache', 'Clear out session cache')
-    .action(function (args, cb) {
-      cache = {};
-      cb();
-    });
 
   vorpal.command('run', 'Run updates on FOLIO objects based on an action script and list of IDs.')
     .action(function (args, cb) {
@@ -181,6 +185,26 @@ const app = async () => {
         }
       });
     })
+
+  vorpal
+    .command('steps', 'Show built in action steps')
+    .action(function (args, cb) {
+      const hsteps = [];
+      for (let name in stepsHelp) {
+        hsteps.push('\t' + stepsHelp[name]);
+      }
+      const out = hsteps.join('\n');
+      this.log('\n' + out + '\n');
+      cb();
+    });
+
+  vorpal
+    .command('empty-cache', 'Clear out session cache')
+    .action(function (args, cb) {
+      cache = {};
+      cb();
+    });
+
     
   vorpal  
     .command('settings', `Show current config settings.`)
