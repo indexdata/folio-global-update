@@ -17,6 +17,7 @@ let originalRec = {};
 let steps = {};
 let logger = {};
 let saverNew = {};
+let cache = {};
 let work = {
   mode: 'TEST',
   status: 'Not connected'
@@ -41,7 +42,9 @@ const app = async () => {
     post: postFolio,
     delete: deleteFolio,
     preview: preview,
-    uuidgen: uuidGen
+    uuidgen: uuidGen,
+    putCache: putCache,
+    getCache: getCache
   };
 
 
@@ -110,6 +113,13 @@ const app = async () => {
     .action(function (args, cb) {
       work.mode = 'TEST';
       setDelimiter();
+      cb();
+    });
+  
+  vorpal
+    .command('empty-cache', 'Clear out session cache')
+    .action(function (args, cb) {
+      cache = {};
       cb();
     });
 
@@ -424,6 +434,14 @@ const deleteFolio = async (endpoint) => {
 const uuidGen = async (text, ns) => {
   if (!ns) ns = '00000000-0000-0000-0000-000000000000';
   return uuid(text, ns);
+}
+
+const putCache = async (key, value) => {
+  cache[key] = value;
+}
+
+const getCache = async (key) => {
+  return cache[key];
 }
 
 const getAuthToken = async (okapi, tenant, username, password, self) => {

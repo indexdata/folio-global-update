@@ -1,9 +1,13 @@
 const action = async (line, steps) => {
   if (line.match(/^\d/)) {
     let [ epn, bc, other ] = line.split(/\t/);
+    let mainRes = await steps.getCache(epn);
     const mainUrl = `item-storage/items?query=hrid==${epn}`;
     const otherUrl = `holdings-storage/holdings?query=hrid==${other}`;
-    const mainRes = await steps.goto(mainUrl);
+    if (!mainRes) { 
+      mainRes = await steps.goto(mainUrl);
+      await steps.putCache(epn, mainRes);
+    }
     const otherRes = await steps.goto(otherUrl);
     if (mainRes.items[0] && otherRes.holdingsRecords[0]) {
       let mainItem = mainRes.items[0];
