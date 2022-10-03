@@ -71,23 +71,24 @@ Type `help` to display all commands.
 ```
 TEST Not connected> help
 
-  Commands:
-
     help [command...]  Provides help for a given command.
     exit               Exits application.
     login              Log into FOLIO.
     logout             Destroy current auth token.
-    mode               Choose between TEST or LIVE modes.
+    live               Switch to LIVE mode
+    test               Switch to TEST mode
     run                Run updates on FOLIO objects based on an action script and list of IDs.
-    settings           Show app settings.
+    steps              Show built in action steps
+    empty-cache        Clear out session cache
+    settings           Show current config settings.
     config             Change configuration.
 
 TEST Not connected> 
 ```
 
-After a successful login, the prompt will display the mode and OKAPI host.  If not, the prompt will display `Not connected`.
+After a successful login, the prompt will display the mode (TEST or LIVE) and OKAPI host.  If not, the prompt will display `Not connected`.
 
-When in TEST mode, no changes will be PUT to the OKAPI endpoint.  Use this mode for testing the output of the selected action script.
+When in TEST mode, no changes will be PUT or POSTed to the OKAPI endpoint.  Use this mode for testing the output of the selected action script.
 
 Action scripts are JavaScript that make a change to a FOLIO object.  These files should be stored in the `actions` directory.  In their simplist form, an action will change a single, string field:
 
@@ -102,6 +103,18 @@ const action = async (id, steps) => {
 }
 
 module.exports = { action };
+```
+Here is a current list of action steps:
+
+```
+        goto(url) -- sends a GET request to <url> and returns JSON data
+        send(url, json) -- sends a PUT request to <url>, requires a <json> object. Returns JSON
+        post(url, json) -- sends a POST request to <url>, requires a <json> object. Returns JSON
+        delete(url) -- sends a DELETE require to <url>
+        preview(updatedRecord, [ originalRecord ]) -- displays the difference between original and updated object
+        uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace
+        putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued
+        readCache(key) -- fetches value from cache based on key
 ```
 
 The above action script will suppress a holdings record.
