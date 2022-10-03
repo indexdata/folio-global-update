@@ -104,6 +104,8 @@ const action = async (id, steps) => {
 
 module.exports = { action };
 ```
+The above action script will suppress a holdings record.
+
 Here is a current list of action steps:
 
 ```
@@ -116,8 +118,6 @@ Here is a current list of action steps:
         putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued
         readCache(key) -- fetches value from cache based on key
 ```
-
-The above action script will suppress a holdings record.
 
 To make this all happen, execute the `run` command which will subsequently prompt you to choose an action script:
 
