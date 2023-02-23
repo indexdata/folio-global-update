@@ -1,6 +1,6 @@
 /*
  This script will search for "Will not lend" ILL policies in holdings records.  It will get a batch of 1000,
- change, the ILL policy to "Will lend" and send the batch to holdings-storage.  It will read the
+ change the ILL policy to "Will lend" and send the batch to holdings-storage.  It will read the
  revolutions limit from a data file which should contain a single line with an integer.
 */
 
