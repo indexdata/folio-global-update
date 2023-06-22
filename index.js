@@ -55,7 +55,7 @@ const app = async () => {
     preview: 'preview(updatedRecord, [ originalRecord ]) -- displays the difference between original and updated object',
     uuidgen: 'uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace',
     putCache: 'putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued',
-    getCache: 'readCache(key) -- fetches value from cache based on key'
+    getCache: 'getCache(key) -- fetches value from cache based on key'
   };
 
 
