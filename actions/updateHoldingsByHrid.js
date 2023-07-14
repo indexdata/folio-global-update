@@ -6,7 +6,8 @@ const action = async (id, steps) => {
   if (rec) {
 	 rec.callNumber = hr.callNumber;
 	 rec.callNumberTypeId = hr.callNumberTypeId;
-  	await steps.send(ep + '/' + rec.id, rec);
+	 await steps.preview(rec);
+  	 await steps.send(ep + '/' + rec.id, rec);
   } else {
 	  await steps.post(ep, hr);
   }
