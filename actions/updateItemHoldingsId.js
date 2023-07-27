@@ -24,6 +24,10 @@ const action = async (item, steps) => {
 		let irec = await steps.goto(iep + '/' + ir.id);
 		if (irec) {
 			irec.holdingsRecordId = hid;
+			if (ir.itemLevelCallNumber) {
+				irec.itemLevelCallNumber = ir.itemLevelCallNumber;
+				irec.itemLevelCallNumberTypeId = ir.itemLevelCallNumberTypeId;
+			}
 			await steps.preview(irec);
 			await steps.send(iep + '/' + irec.id, irec);
 		}
