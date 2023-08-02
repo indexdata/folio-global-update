@@ -6,7 +6,7 @@ const action = async (id, steps) => {
 		if (record.physical) {
 			record.physical.createInventory = ihi;
 		} else if (record.eresource) {
-			record.eresource.createInventory = ihi;
+			record.eresource.createInventory = 'None';
 		}
 		await steps.preview(record);
 		await steps.send(url, record);

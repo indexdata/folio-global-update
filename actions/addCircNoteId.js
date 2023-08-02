@@ -13,7 +13,7 @@ const action = async (id, steps) => {
 		n.id = await steps.uuidgen(ustr);
 	}
   }
-  // steps.term.log(item);
+  await steps.preview(item);
   await steps.send(`item-storage/items/${item.id}`, item);
   return;
 }
