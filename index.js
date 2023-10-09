@@ -402,13 +402,12 @@ const putFolio = async (endpoint, payload) => {
         .put(url)
         .send(payload)
         .set('x-okapi-token', token)
-        .set('accept', 'application/json')
-        .set('accept', 'text/plain')
+        .set('accept', 'application/json, text/plain')
         .set('content-type', 'application/json')
       return res.body;
     } catch (e) {
       const errMsg = (e.response) ? e.response.text : e;
-      throw new Error(errMsg);
+      throw new Error(e);
     }
   }
 }
@@ -425,8 +424,7 @@ const postFolio = async (endpoint, payload) => {
         .post(url)
         .send(payload)
         .set('x-okapi-token', token)
-        .set('accept', 'application/json')
-        .set('accept', 'text/plain')
+        .set('accept', 'application/json, text/plain')
         .set('content-type', 'application/json')
       return res.body;
     } catch (e) {
@@ -450,7 +448,7 @@ const deleteFolio = async (endpoint) => {
       return res.body;
     } catch (e) {
       const errMsg = (e.response) ? e.response.text : e;
-      throw new Error(errMsg);
+      throw new Error(e);
     }
   }
 }
