@@ -265,10 +265,10 @@ const runAction = async (self, scriptPath, inFile) => {
     crlfDelay: Infinity
   });
 
-  const pp = path.parse(scriptPath);
+  const pp = path.parse(inFile);
   if (config.logPath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.logPath)) fs.mkdirSync(config.logPath);
-    const lpath = `${config.logPath}/${pp.name}.log`;
+    let lpath = `${config.logPath}/${pp.name}.log`;
     const logout = fs.createWriteStream(lpath);
     logger = new Console({ stdout: logout });
   } else {
@@ -278,8 +278,7 @@ const runAction = async (self, scriptPath, inFile) => {
   let failer = {};
   if (config.errPath && work.mode !== 'TEST') {
     if (!fs.existsSync(config.errPath)) fs.mkdirSync(config.errPath);
-    const pp = path.parse(scriptPath);
-    const spath = `${config.errPath}/${pp.name}.txt`;
+    const spath = `${config.errPath}/${pp.name}-err${pp.ext}`;
     const sout = fs.createWriteStream(spath);
     failer = new Console({ stdout: sout });
   } else {
