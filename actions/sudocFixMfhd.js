@@ -18,11 +18,15 @@ const action = async (id, steps) => {
 				  break;
 			  }
 	          }
+		  mfhd.leader = mfhd.leader.replace(/^(.....)\\/, '$1n');
+		  mfhd.leader = mfhd.leader.replace(/^(......)\\/, '$1y');
+		  mfhd.leader = mfhd.leader.replace(/^(.{17})\\/, '$1u');
 		  mfhd.relatedRecordVersion = `${rec._version}`;
 		  await steps.preview(mfhd);
 		  await steps.send(`${rep}/${mfhd.parsedRecordId}`, mfhd);
           }
   }
+  await steps.sleep(1000);
   return;
 }
 
