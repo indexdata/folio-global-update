@@ -6,7 +6,7 @@ const readline = require('readline');
 const diff = require('deep-diff')
 const { Console } = require('console');
 const path = require('path');
-const { v5: uuid } = require('uuid')
+const { v5: uuid } = require('uuid');
 const chalk = vorpal.chalk;
 
 const configsDir = './configs';
@@ -44,7 +44,8 @@ const app = async () => {
     preview: preview,
     uuidgen: uuidGen,
     putCache: putCache,
-    getCache: getCache
+    getCache: getCache,
+    sleep: sleep
   };
 
   stepsHelp = {
@@ -55,7 +56,8 @@ const app = async () => {
     preview: 'preview(updatedRecord, [ originalRecord ]) -- displays the difference between original and updated object',
     uuidgen: 'uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace',
     putCache: 'putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued',
-    getCache: 'getCache(key) -- fetches value from cache based on key'
+    getCache: 'getCache(key) -- fetches value from cache based on key',
+    sleep: 'sleep(ms) -- delays the execution of acction script by ms (milliseconds)'
   };
 
 
@@ -465,6 +467,16 @@ const putCache = async (key, value) => {
 const getCache = async (key) => {
   return cache[key];
 }
+
+function sleep(ms) {
+  steps.term.log(`Sleeping for ${ms}ms...`);
+  return new Promise(function (resolve) {
+    setTimeout(function () {
+      resolve();
+    }, ms);
+  });
+}
+
 
 const getAuthToken = async (okapi, tenant, username, password, self) => {
   const authUrl = okapi + '/bl-users/login'; 
