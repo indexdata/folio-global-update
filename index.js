@@ -308,7 +308,8 @@ const runAction = async (self, scriptPath, inFile) => {
   for await (let id of rl) {
     id = id.replace(/^"|"$/g, '');
     line++;
-    let logLine = `[${line}] Processing ${id}`;
+    let lid = id.replace(/^(.{50}).+/, '$1...');
+    let logLine = `[${line}] Processing ${lid}`;
     self.log(chalk.bold(logLine));
     logger.log(logLine);
     try {
@@ -362,7 +363,7 @@ const preview = async (updatedRec, original) => {
 }
 
 const getFolio = async (endpoint, noDiff) => {
-  const url = `${config.okapi}/${endpoint}`;
+  const url = (endpoint.match(/^http/)) ? endpoint : `${config.okapi}/${endpoint}`;
   let logLine = `  GET ${url}`;
   steps.term.log(logLine);
   logger.log(logLine);
@@ -392,8 +393,8 @@ const getFolio = async (endpoint, noDiff) => {
 }
 
 const putFolio = async (endpoint, payload) => {
-  if (work.mode === 'LIVE') {
-    const url = `${config.okapi}/${endpoint}`;
+  if (work.mode === 'LIVE' || endpoint.match(/^http/)) {
+    const url = (endpoint.match(/^http/)) ? endpoint : `${config.okapi}/${endpoint}`;
     let logLine = `  PUT ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
@@ -414,8 +415,8 @@ const putFolio = async (endpoint, payload) => {
 }
 
 const postFolio = async (endpoint, payload) => {
-  if (work.mode === 'LIVE') {
-    const url = `${config.okapi}/${endpoint}`;
+  if (work.mode === 'LIVE' || endpoint.match(/^http/)) {
+    const url = (endpoint.match(/^http/)) ? endpoint : `${config.okapi}/${endpoint}`;
     let logLine = `  POST ${url}`;
     steps.term.log(logLine);
     logger.log(logLine);
