@@ -5,6 +5,11 @@ const action = async (marc, steps) => {
     let r = res.instances[x];
     await steps.post('instance-storage/instances', r);
   };
+  await steps.post('source-storage/snapshots', res.snapshot); 
+  for (x = 0; x < res.records.length; x++) {
+    let r = res.records[x];
+    await steps.post('source-storage/records', r); 
+  }
   return;
 }
 
