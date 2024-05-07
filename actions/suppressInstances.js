@@ -5,11 +5,14 @@
 */
 
 const action = async (id, steps) => {
-  const url = `inventory/instances/${id}`;
+  id = id.replace(/,.+$/, '');
+  let url = `inventory/instances/${id}`;
   const record = await steps.goto(url);
+  if (record.discoverySuppress) return;
   record.discoverySuppress = true;
   steps.preview(record);
   await steps.send(url, record);
+  await steps.sleep(250);
   return;
 }
 
