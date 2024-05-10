@@ -39,6 +39,7 @@ The configuration files are located in the `configs` directory.  There is an exa
 ```
 {
   "okapi": "http://localhost:9130",
+  "authPath": "/authn/login-with-expiry",
   "tenant": "diku",
   "username": "diku_admin",
   "password": "admin",
@@ -52,6 +53,7 @@ The configuration files are located in the `configs` directory.  There is an exa
 ```
 
 - `okapi` -- OKAPI endpoint [ required ]
+- `authPath` -- OKAPI login endpoint [ defaults to "/bl-users/login" ]
 - `tenant` -- OKAPI tenant [ required ]
 - `username` -- a FOLIO user with permissions to update records [ optional ]
 - `password` -- the password for the above username [ optional ]
