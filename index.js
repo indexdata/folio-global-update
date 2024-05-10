@@ -92,7 +92,7 @@ const app = async () => {
       } else {
         pw = config.password;
       }
-      token = await getAuthToken(config.okapi, config.tenant, user, pw, self);
+      token = await getAuthToken(config.okapi, config.tenant, user, pw, self, config.authPath);
       if (token) {
         work.status = host;
         setDelimiter();
@@ -477,8 +477,8 @@ function sleep(ms) {
 }
 
 
-const getAuthToken = async (okapi, tenant, username, password, self) => {
-  const authUrl = okapi + '/bl-users/login'; 
+const getAuthToken = async (okapi, tenant, username, password, self, authPath) => {
+  const authUrl = (authPath) ? okapi + authPath : okapi + '/bl-users/login'; 
   const authBody = `{"username": "${username}", "password": "${password}"}`;
   try {
     let res = await superagent
@@ -487,7 +487,19 @@ const getAuthToken = async (okapi, tenant, username, password, self) => {
       .set('x-okapi-tenant', tenant)
       .set('accept', 'application/json')
       .set('content-type', 'application/json');
-    return res.headers['x-okapi-token'];
+    let token;
+    if (authPath && authPath.match(/expiry/)) {
+      let cooks = res.headers['set-cookie'];
+      for (let x = 0; x < cooks.length; x++) {
+        let cook = cooks[x];
+        if (cook.match(/^folioAccessToken/)) {
+          token = cook.replace(/^folioAccessToken=([^;]+).*/, '$1');
+        }
+      }
+    } else {
+      token = res.headers['x-okapi-token'];
+    }
+    return token;
   } catch (e) {
     const errMsg = (e.response) ? e.response.text : e;
     self.log(chalk.red(errMsg));
