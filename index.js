@@ -24,7 +24,6 @@ let work = {
 }
 const setDelimiter = () => {
   vorpal.delimiter(`${work.mode} ${work.status}>`).show();
-
 }
 setDelimiter();
 const defaults = {
@@ -375,11 +374,11 @@ const getFolio = async (endpoint, noDiff) => {
     if (work.mode === 'TEST' && !noDiff) {
       let prev = res.body;
       if (res.body.totalRecords) {
-	for (prop in res.body) {
+	      for (prop in res.body) {
           if (!prop.match(/totalRecords|resultInfo/)) {
-	    prev = res.body[prop][0];
+	          prev = res.body[prop][0];
             break;
-	  }
+	        }
         }
       }
       bodyText = JSON.stringify(prev);
