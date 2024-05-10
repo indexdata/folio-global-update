@@ -11,12 +11,20 @@ const action = async (inRec, steps) => {
 	let url = `users/${id}`;
 	let user = await steps.goto(url);
 	if (!user.username.match(/mod-|system|pubsub|admin/i)) {
-		if (!user.customFields) {
+		if (!user.customFields && user.barcode) {
 			user.customFields = {};
 		}
-		user.customFields.formerIdentifier = `${user.barcode}`;
-		user.barcode = `${user.username}` || '';
-		user.username = `${user.personal.email}` || '';
+		if (user.barcode) {
+			user.customFields.formerIdentifier = user.barcode;
+			delete user.barcode;
+		}
+		if (user.username) {
+			user.barcode = user.username;
+			delete user.username;
+		}
+		if (user.personal.email) {
+			user.username = user.personal.email;
+		}
 		await steps.preview(user);
 		await steps.send(url, user);
 	} else {
