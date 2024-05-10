@@ -10,7 +10,7 @@ const action = async (inRec, steps) => {
 	let id = u.id;
 	let url = `users/${id}`;
 	let user = await steps.goto(url);
-	if (user.username && !user.username.match(/mod-|system|pubsub|admin/i)) {
+	if ((user.username && !user.username.match(/mod-|system|pubsub|admin/i)) || !user.username) {
 		if (!user.customFields && user.barcode) {
 			user.customFields = {};
 		}
