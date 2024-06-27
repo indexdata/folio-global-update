@@ -1,5 +1,6 @@
 {
   "okapi": "http://localhost:9130",
+  "authPath": "/authn/login-with-expiry",
   "tenant": "diku",
   "username": "diku_admin",
   "password": "admin",
