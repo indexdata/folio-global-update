@@ -19,10 +19,16 @@ let okapi;
 let tenant;
 
 function main() {
+  clear();
   chooseConfig();
 }
 
+function clear() {
+  console.log('\x1Bc');
+}
+
 function exit() {
+  clear();
   console.log('See ya later...');
 };
 
@@ -40,7 +46,7 @@ async function put(ep, payload) {
     return res;
   } catch(e) {
     let msg = (e.response) ? e.response.text : e;
-    return { err: e };
+    return { err: msg };
   }
 }
 
@@ -59,7 +65,7 @@ async function post(ep, payload, rtype) {
     return res[rtype];
   } catch(e) {
     let msg = (e.response) ? e.response.text : e;
-    return { err: e };
+    return { err: msg };
   }
 }
 
@@ -72,11 +78,26 @@ async function get(ep) {
     .get(url)
     .set ('x-okapi-token', token)
     .set('accept', '*/*')
-    .set('content-type', 'application/json');
     return res.body;
   } catch(e) {
     let msg = (e.response) ? e.response.text : e;
-    return { err: e };
+    return { err: msg };
+  }
+}
+
+async function del(ep) {
+  ep = ep.replace(/^\//, '');
+  let url = okapi + '/' + ep;
+  console.log(`DELETE ${url}`);
+  try {
+    let res = await superagent
+    .get(url)
+    .set ('x-okapi-token', token)
+    .set('accept', '*/*')
+    return res.body;
+  } catch(e) {
+    let msg = (e.response) ? e.response.text : e;
+    return { err: msg };
   }
 }
 
@@ -110,6 +131,7 @@ async function login(conf) {
 }
 
 function edit(text, ep) {
+  clear();
   inquirer
   .prompt([
     {type: 'editor', name: 'newText', message: 'Edit this', default: text},
@@ -119,6 +141,7 @@ function edit(text, ep) {
     if (a.save) {
      put(ep, a.newText);
     }
+    viewCrud(ep);
   })
   .catch((e) => {
     let msg = e.message || e;
@@ -126,19 +149,40 @@ function edit(text, ep) {
   });  
 }
 
-async function viewCrud(ep) {
+function delConfirm(ep) {
+  inquirer
+  .prompt([
+    {type: 'confirm', name: 'act', message: `Delete this record`, default: false},
+  ])
+  .then((a) => {
+    if (a.act) {
+      del(ep);
+    } else {
+      settings();
+    }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
+async function viewCrud(ep, backep) {
+  clear();
   let rec = await get(ep);
   let recStr = JSON.stringify(rec, null, 2);
   console.log(recStr);
 
-  let ch = [new inquirer.Separator(), 'Edit', '<--'];
+  let ch = [new inquirer.Separator(), 'Edit', 'Delete', '<--'];
   inquirer
   .prompt([
     {type: 'list', name: 'act', message: 'Choose one', choices: ch, pageSize: pageSize},
   ])
   .then((a) => {
     if (a.act === '<--') {
-      settings();
+      listCrud(backep);
+    } else if (a.act === 'Delete') {
+      delConfirm(ep);
     } else {
       edit(recStr, ep);
     }
@@ -150,11 +194,13 @@ async function viewCrud(ep) {
 
 }
 
-async function listCrud(ep) {
+async function listCrud(ep, func) {
+  clear();
   let brief = [];
   let propName = '';
   let link = ep.replace(/^(.+)\?.*/, '$1');
-  const res = await get(ep);
+  let url = (ep.match(/\?/)) ? ep + '&limit=1000' : ep + '?limit=1000';
+  const res = await get(url);
   for (let prop in res) {
     let p = res[prop];
     if (Array.isArray(p)) {
@@ -171,6 +217,13 @@ async function listCrud(ep) {
       break;
     }
   }
+  brief.sort((a, b) => { 
+    if (a.name > b.name) {
+      return 1;
+    } else {
+      return -1;
+    }
+  });
   brief.push(new inquirer.Separator(), '<--');
   inquirer
   .prompt([
@@ -178,9 +231,9 @@ async function listCrud(ep) {
   ])
   .then((a) => {
     if (a.ep === '<--') {
-      settings();
+      func();
     } else {
-      viewCrud(a.ep);
+      viewCrud(a.ep, ep);
     }
   })
   .catch((e) => {
@@ -190,6 +243,7 @@ async function listCrud(ep) {
 }
 
 function userSet() {
+  clear();
   let menu = [];
   for (let k in userSettings) {
     menu.push(k);
@@ -204,7 +258,7 @@ function userSet() {
       settings();
     } else {
       let ep = userSettings[a.set];
-      listCrud(ep);
+      listCrud(ep, userSet);
     }
   })
   .catch((e) => {
@@ -215,6 +269,7 @@ function userSet() {
 }
 
 function settings() {
+  clear();
   let allMods = [...mods, 'Cancel'];
   inquirer
   .prompt([
@@ -236,6 +291,7 @@ function settings() {
 }
 
 function chooseMods() {
+  clear();
   let allMods = [...mods, 'Settings', 'Exit'];
   inquirer
   .prompt([
@@ -255,6 +311,7 @@ function chooseMods() {
 }
 
 function chooseConfig() {
+  clear();
   let menu = [...confs, 'Exit'];
   inquirer
     .prompt([
