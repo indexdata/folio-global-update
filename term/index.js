@@ -4,6 +4,7 @@ import fs from 'fs';
 
 const confDir = '../configs';
 let pageSize = 24;
+const schemaDir = './schemas';
 
 const mods = ['Users', 'Inventory'];
 const userSettings = {
@@ -11,10 +12,19 @@ const userSettings = {
   'Patron groups': 'groups',
   'Address types': 'addresstypes'
 }
+const invSettings = {
+  'Institutions': 'location-units/institutions',
+  'Campuses': 'location-units/campuses',
+  'Libraries': 'location-units/libraries',
+  'Locations': 'locations'
+}
 
 let confs = fs.readdirSync(confDir);
 
-let token;
+const def = {};
+let goBack = '<--';
+
+let token = '';
 let okapi;
 let tenant;
 
@@ -30,7 +40,27 @@ function clear() {
 function exit() {
   clear();
   console.log('See ya later...');
-};
+}
+
+function errMsg(msg, func) {
+  console.log(msg);
+  inquirer
+  .prompt([
+    {type: 'confirm', name: 'yn', message: goBack, default: true},
+  ])
+  .then((a) => {
+    if (a.yn) {
+      func();
+    } else {
+      exit();
+    }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  });  
+
+}
 
 async function put(ep, payload) {
   ep = ep.replace(/^\//, '');
@@ -60,12 +90,13 @@ async function post(ep, payload, rtype) {
     .post(url)
     .send(payload)
     .set('x-okapi-tenant', tenant)
+    .set('x-okapi-token', token)
     .set('accept', '*/*')
     .set('content-type', 'application/json');
     return res[rtype];
   } catch(e) {
     let msg = (e.response) ? e.response.text : e;
-    return { err: msg };
+    errMsg(msg);
   }
 }
 
@@ -91,13 +122,13 @@ async function del(ep) {
   console.log(`DELETE ${url}`);
   try {
     let res = await superagent
-    .get(url)
-    .set ('x-okapi-token', token)
-    .set('accept', '*/*')
-    return res.body;
+    .delete(url)
+    .set('x-okapi-token', token)
+    .set('accept', 'text/plain')
+    return res;
   } catch(e) {
     let msg = (e.response) ? e.response.text : e;
-    return { err: msg };
+    errMsg(msg);
   }
 }
 
@@ -130,7 +161,7 @@ async function login(conf) {
   }
 }
 
-function edit(text, ep) {
+function edit(text, ep, back) {
   clear();
   inquirer
   .prompt([
@@ -141,7 +172,7 @@ function edit(text, ep) {
     if (a.save) {
      put(ep, a.newText);
     }
-    viewCrud(ep);
+    viewCrud(ep, back);
   })
   .catch((e) => {
     let msg = e.message || e;
@@ -149,14 +180,14 @@ function edit(text, ep) {
   });  
 }
 
-function delConfirm(ep) {
+function delConfirm(ep, back) {
   inquirer
   .prompt([
     {type: 'confirm', name: 'act', message: `Delete this record`, default: false},
   ])
-  .then((a) => {
+  .then(async (a) => {
     if (a.act) {
-      del(ep);
+      let res = await del(ep, back);
     } else {
       settings();
     }
@@ -167,24 +198,53 @@ function delConfirm(ep) {
   }); 
 }
 
-async function viewCrud(ep, backep) {
+function newCrud(ep, func) {
+  let sfile = schemaDir + '/' + ep + '.json';
+  try {
+    let prs = [];
+    let schema = fs.readFileSync(sfile, { encoding: 'utf8'});
+    let s = JSON.parse(schema);
+    for (let p in s.properties) {
+      if (p !== 'id' && s.properties[p].type === 'string') {
+        prs.push({ type: 'input', name: p, message: p});
+      }
+    }
+    inquirer
+    .prompt(prs)
+    .then(async (a) => {
+      console.log(a);
+      await post(ep, a);
+      func();
+    })
+    .catch((e) => {
+      let msg = e.message || e;
+      console.log(msg);
+    }); 
+
+    } catch(e) {
+      errMsg(e, settings);
+    }
+}
+
+async function viewCrud(ep, back, func) {
   clear();
+  console.log(back);
   let rec = await get(ep);
   let recStr = JSON.stringify(rec, null, 2);
   console.log(recStr);
 
-  let ch = [new inquirer.Separator(), 'Edit', 'Delete', '<--'];
+  let ch = [new inquirer.Separator(), 'Edit', 'Delete', goBack];
   inquirer
   .prompt([
     {type: 'list', name: 'act', message: 'Choose one', choices: ch, pageSize: pageSize},
   ])
   .then((a) => {
-    if (a.act === '<--') {
-      listCrud(backep);
+    if (a.act === goBack) {
+      listCrud(back, func);
     } else if (a.act === 'Delete') {
-      delConfirm(ep);
+      delConfirm(ep, back);
     } else {
-      edit(recStr, ep);
+      edit(recStr, ep, back);
     }
   })
   .catch((e) => {
@@ -224,16 +284,18 @@ async function listCrud(ep, func) {
       return -1;
     }
   });
-  brief.push(new inquirer.Separator(), '<--');
+  brief.push(new inquirer.Separator(), 'New', goBack);
   inquirer
   .prompt([
     {type: 'list', name: 'ep', message: `Settings ${propName}`, choices: brief, pageSize: pageSize},
   ])
   .then((a) => {
-    if (a.ep === '<--') {
+    if (a.ep === goBack) {
       func();
+    } else if (a.ep === 'New') {
+      newCrud(ep, func);
     } else {
-      viewCrud(a.ep, ep);
+      viewCrud(a.ep, ep, func);
     }
   })
   .catch((e) => {
@@ -242,19 +304,47 @@ async function listCrud(ep, func) {
   }); 
 }
 
+function invSet() {
+  clear();
+  let menu = [];
+  for (let k in invSettings) {
+    menu.push(k);
+  }
+  menu.push(new inquirer.Separator());
+  menu.push(goBack);
+  inquirer
+  .prompt([
+    {type: 'list', name: 'set', message: 'Inventory settings', choices: menu, pageSize: pageSize},
+  ])
+  .then(async (a) => {
+    if (a.set === goBack) {
+      settings();
+    } else {
+      let ep = invSettings[a.set];
+      listCrud(ep, invSet);
+    }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
+
 function userSet() {
   clear();
   let menu = [];
   for (let k in userSettings) {
     menu.push(k);
   }
-  menu.push('Cancel');
+  menu.push(new inquirer.Separator());
+  menu.push(goBack);
   inquirer
   .prompt([
     {type: 'list', name: 'set', message: 'User settings', choices: menu, pageSize: pageSize},
   ])
   .then(async (a) => {
-    if (a.mod === 'Cancel') {
+    if (a.set === goBack) {
       settings();
     } else {
       let ep = userSettings[a.set];
@@ -265,22 +355,23 @@ function userSet() {
     let msg = e.message || e;
     console.log(msg);
   }); 
-
 }
 
 function settings() {
   clear();
-  let allMods = [...mods, 'Cancel'];
+  let allMods = [...mods, goBack];
   inquirer
   .prompt([
     {type: 'list', name: 'mod', message: 'Settings', choices: allMods, pageSize: pageSize},
   ])
   .then((a) => {
-    if (a.mod === 'Cancel') {
+    if (a.mod === goBack) {
       chooseMods();
     } else {
       if (a.mod === 'Users') {
-        userSet(a.mod);
+        userSet();
+      } else if (a.mod === 'Inventory') {
+        invSet();
       }
     }
   })
@@ -292,21 +383,23 @@ function settings() {
 
 function chooseMods() {
   clear();
-  let allMods = [...mods, 'Settings', 'Exit'];
+  let allMods = [...mods, 'Settings', goBack];
   inquirer
   .prompt([
     {type: 'list', name: 'mod', message: 'Choose a module', choices: allMods, pageSize: pageSize},
   ])
   .then((a) => {
-    if (a.mod === 'Exit') {
-      exit();
+    if (a.mod === goBack) {
+      chooseConfig();
     } else if (a.mod === 'Settings') {
-        settings();
+      settings();
+    } else {
+      throw Error(`${a.mod} not setup!`);
     }
   })
   .catch((e) => {
     let msg = e.message || e;
-    console.log(msg);
+    errMsg(msg, chooseMods);
   });
 }
 
@@ -315,7 +408,7 @@ function chooseConfig() {
   let menu = [...confs, 'Exit'];
   inquirer
     .prompt([
-      {type: 'list', name: 'config', message: 'Choose a config', choices: menu, pageSize: pageSize},
+      {type: 'list', name: 'config', message: 'Choose a config', choices: menu, pageSize: pageSize, default: def.chooseConfig},
     ])
     .then((answers) => {
       if (answers.config === 'Exit') {
@@ -324,6 +417,7 @@ function chooseConfig() {
         const cf = confDir + '/' + answers.config;
         const cs = fs.readFileSync(cf, {encoding: 'utf8'});
         const conf = JSON.parse(cs);
+        def.chooseConfig = answers.config;
         login(conf);
       }
     })
