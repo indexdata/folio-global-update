@@ -8,16 +8,22 @@ const schemaDir = './schemas';
 
 const mods = ['Users', 'Inventory'];
 const userSettings = {
-  'Permission sets': 'perms/permissions?query=mutable==true',
-  'Patron groups': 'groups',
-  'Address types': 'addresstypes'
-}
+  'Permission sets': { ep: 'perms/permissions?query=mutable==true' },
+  'Patron groups': { ep: 'groups' },
+  'Address types': { ep: 'addresstypes'}
+};
 const invSettings = {
-  'Institutions': 'location-units/institutions',
-  'Campuses': 'location-units/campuses',
-  'Libraries': 'location-units/libraries',
-  'Locations': 'locations'
-}
+  Institutions: { ep: 'location-units/institutions' },
+  Campuses: { ep: 'location-units/campuses' },
+  Libraries: { ep: 'location-units/libraries' },
+  Locations: {
+    ep: 'locations',
+    lookups: { 
+      institutionId: 'location-units/institutions',
+      campusId: 'location-units/campuses'
+    }
+  }
+};
 
 let confs = fs.readdirSync(confDir);
 
@@ -187,7 +193,7 @@ function delConfirm(ep, back) {
   ])
   .then(async (a) => {
     if (a.act) {
-      let res = await del(ep, back);
+      await del(ep, back);
     } else {
       settings();
     }
@@ -228,7 +234,7 @@ function newCrud(ep, func) {
 
 async function viewCrud(ep, back, func) {
   clear();
-  console.log(back);
+  console.log(ep);
   let rec = await get(ep);
   let recStr = JSON.stringify(rec, null, 2);
   console.log(recStr);
@@ -258,8 +264,8 @@ async function listCrud(ep, func) {
   clear();
   let brief = [];
   let propName = '';
-  let link = ep.replace(/^(.+)\?.*/, '$1');
-  let url = (ep.match(/\?/)) ? ep + '&limit=1000' : ep + '?limit=1000';
+  let link = ep.ep.replace(/^(.+)\?.*/, '$1');
+  let url = (ep.ep.match(/\?/)) ? ep.ep + '&limit=1000' : ep.ep + '?limit=1000';
   const res = await get(url);
   for (let prop in res) {
     let p = res[prop];
