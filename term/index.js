@@ -4,6 +4,7 @@ import fs from 'fs';
 
 const confDir = '../configs';
 let pageSize = 24;
+const indent = '          ';
 const schemaDir = './schemas';
 
 const mods = ['Users', 'Inventory'];
@@ -24,6 +25,15 @@ const invSettings = {
     }
   }
 };
+const temp = {
+  instances: {
+    title: { l: 'Title', t: 's' },
+    'contributors.name': { l: 'Author', t: 'a' },
+    'publication.publisher': { l: 'Publisher', t: 'a' },
+    'publication.dateOfPublication': { l: 'Date', t: 'a' },
+    'subjects.value': { l: 'Subjects', t: 'a'}
+  }
+}
 
 let confs = fs.readdirSync(confDir);
 
@@ -363,6 +373,158 @@ function userSet() {
   }); 
 }
 
+async function viewSource(type, id) {
+  let ep = `source-storage/records/${id}/formatted?idType=INSTANCE`;
+  let res = await get(ep);
+  if (res) {
+    let data = res.parsedRecord.formattedContent.replace(/(\$.)/gs, ' $1 ');
+    console.log(data);
+  }
+
+  inquirer
+  .prompt([
+    {type: 'input', name: 'r', message: 'Hit [Enter] to return...' },
+  ])
+  .then((a) => {
+    viewFull(type, id);
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
+async function viewFull(type, id) {
+  if (type === 'instances') {
+    let url = `inventory/instances/${id}`;
+    let res = await get(url);
+    let tp = temp[type];
+    for (let k in tp) {
+      let l = tp[k].l;
+      let t = tp[k].t;
+      if (t === 's' && res[k]) {
+        console.log(l);
+        console.log(indent, res[k]);
+      }
+      if (t === 'a') {
+        let [ root, prop ] = k.split(/\./);
+        if (res[root]) {
+          console.log(l);
+          for (let x = 0; x < res[root].length; x++) {
+            let el = res[root][x];
+            let data = el[prop];
+            console.log(indent, data);
+          }
+        }
+      }
+    }
+  }
+  let menu = [ new inquirer.Separator(), 'View JSON', 'View Source', goBack, 'Quit' ];
+  inquirer
+  .prompt([
+    {type: 'list', name: 'sel', message: 'Choose one:', choices: menu, pageSize: pageSize},
+  ])
+  .then((a) => {
+    if (a.sel === goBack) {
+      isearch(type);
+    } else if (a.sel === 'Quit') {
+      exit();
+    } else if (a.sel === 'View Source') {
+      viewSource(type, id);
+    }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
+async function iquery(type, term) {
+  let qstr = `(keyword all "${term}" or isbn="${term}" or hrid=="${term}" or id=="${term}")`
+  let ep = `search/${type}?query=${qstr}&limit=${pageSize}`
+  let res = await get(ep);
+  let tr = res.totalRecords;
+  console.log('Found:', tr);
+  let list = [];
+  for (let x = 0; x < res[type].length; x++) {
+    let r = res[type][x];
+    let ti = r.title.substring(0, 35).padEnd(40, ' ');
+    let dt = (r.publication) ? r.publication[0].dateOfPublication : 'uuuu';
+    let o = {
+      name: ti + dt,
+      value: r.id
+    }
+    list.push(o);
+  }
+
+  let menu = [...list, new inquirer.Separator(), goBack, 'Quit'];
+  inquirer
+  .prompt([
+    {type: 'list', name: 'sel', message: 'Results:', choices: menu, pageSize: pageSize},
+  ])
+  .then((a) => {
+    if (a.sel === goBack) {
+      isearch(type);
+    } else if (a.sel === 'Quit') {
+      exit();
+    } else {
+      viewFull(type, a.sel);
+    }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
+function isearch(type) {
+  clear();
+  let lcType = type.toLowerCase();
+
+  let menu = [new inquirer.Separator(), 'Another search', goBack, 'Quit'];
+  inquirer
+  .prompt([
+    {type: 'input', name: 'query', message: `Query (${lcType}): `},
+    // {type: 'list', name: 'sel', message: 'Choose:', choices: menu, pageSize: pageSize},
+  ])
+  .then((a) => {
+   if (a.sel === 'Quit') {
+    exit();
+   } else if (a.sel === goBack) {
+    invMenu();
+   } else {
+    iquery(lcType, a.query)
+   }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
+
+function invMenu() {
+  clear();
+  let menu = ['Instances', 'Holdings', 'Items', new inquirer.Separator(), goBack, 'Quit'];
+  inquirer
+  .prompt([
+    {type: 'list', name: 'sel', message: 'Search...', choices: menu, pageSize: pageSize},
+  ])
+  .then((a) => {
+    if (a.sel === goBack) {
+      chooseMods();
+    } else if (a.sel === 'Quit') {
+      exit();
+    } else {
+      isearch(a.sel);
+    }
+  })
+  .catch((e) => {
+    let msg = e.message || e;
+    console.log(msg);
+  }); 
+}
+
 function settings() {
   clear();
   let allMods = [...mods, goBack];
@@ -399,6 +561,8 @@ function chooseMods() {
       chooseConfig();
     } else if (a.mod === 'Settings') {
       settings();
+    } else if (a.mod === 'Inventory') {
+      invMenu();
     } else {
       throw Error(`${a.mod} not setup!`);
     }
