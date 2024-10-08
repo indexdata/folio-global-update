@@ -374,13 +374,14 @@ function userSet() {
 }
 
 async function viewSource(type, id) {
+  clear();
   let ep = `source-storage/records/${id}/formatted?idType=INSTANCE`;
   let res = await get(ep);
   if (res) {
     let data = res.parsedRecord.formattedContent.replace(/(\$.)/gs, ' $1 ');
     console.log(data);
   }
-
+  
   inquirer
   .prompt([
     {type: 'input', name: 'r', message: 'Hit [Enter] to return...' },
@@ -395,6 +396,7 @@ async function viewSource(type, id) {
 }
 
 async function viewFull(type, id) {
+  clear();
   if (type === 'instances') {
     let url = `inventory/instances/${id}`;
     let res = await get(url);
@@ -419,6 +421,7 @@ async function viewFull(type, id) {
       }
     }
   }
+
   let menu = [ new inquirer.Separator(), 'View JSON', 'View Source', goBack, 'Quit' ];
   inquirer
   .prompt([
@@ -440,6 +443,7 @@ async function viewFull(type, id) {
 }
 
 async function iquery(type, term) {
+  clear();
   let qstr = `(keyword all "${term}" or isbn="${term}" or hrid=="${term}" or id=="${term}")`
   let ep = `search/${type}?query=${qstr}&limit=${pageSize}`
   let res = await get(ep);
@@ -484,7 +488,7 @@ function isearch(type) {
   let menu = [new inquirer.Separator(), 'Another search', goBack, 'Quit'];
   inquirer
   .prompt([
-    {type: 'input', name: 'query', message: `Query (${lcType}): `},
+    {type: 'input', name: 'query', message: `Query (${lcType}):`},
     // {type: 'list', name: 'sel', message: 'Choose:', choices: menu, pageSize: pageSize},
   ])
   .then((a) => {
