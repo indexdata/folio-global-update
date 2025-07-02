@@ -317,7 +317,8 @@ const runAction = async (self, scriptPath, inFile) => {
     } catch (e) {
       self.log(chalk.red(e));
       let logLine = (e.message) ? e.message : e;
-      logger.log(`  ERROR ${logLine}`);
+      logger.log(e);
+      // logger.log(`  ERROR ${logLine}`);
       failer.log(id);
       stats.failed++;
     }
@@ -402,6 +403,7 @@ const putFolio = async (endpoint, payload) => {
       let res = await superagent
         .put(url)
         .send(payload)
+	.set('x-okapi-tenant', config.tenant)
         .set('x-okapi-token', token)
         .set('accept', 'application/json, text/plain')
         .set('content-type', 'application/json')
