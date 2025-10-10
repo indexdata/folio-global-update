@@ -12,7 +12,10 @@ const chalk = vorpal.chalk;
 const configsDir = './configs';
 let config = {};
 let token = null;
+let expiry = null;
 let host = null;
+let user = null;
+let pw = null;
 let originalRec = {};
 let steps = {};
 let logger = {};
@@ -64,8 +67,6 @@ const app = async () => {
     .command('login', `Log into FOLIO.`)
     .action(async function (args, cb) {
       let self = this;
-      let user;
-      let pw;
       if (!config.username) {
         await this.prompt(
           {
@@ -92,7 +93,9 @@ const app = async () => {
       } else {
         pw = config.password;
       }
-      token = await getAuthToken(config.okapi, config.tenant, user, pw, self, config.authPath);
+      let auth = await getAuthToken(config.okapi, config.tenant, user, pw, self, config.authPath);
+      token = auth.token;
+      expiry = auth.expiry;
       if (token) {
         work.status = host;
         setDelimiter();
@@ -305,6 +308,16 @@ const runAction = async (self, scriptPath, inFile) => {
 
   let line = 0;
   for await (let id of rl) {
+    if (expiry) {
+      let nowTime = new Date().valueOf();
+      if (nowTime >= expiry) {
+        self.log('Getting new token...');
+        logger.log('Getting new token...');
+        let auth = await getAuthToken(config.okapi, config.tenant, user, pw, self, config.authPath);
+        token = auth.token;
+        expiry = auth.expiry;
+      }
+    }
     id = id.replace(/^"|"$/g, '');
     line++;
     let lid = id.replace(/^(.{50}).+/, '$1...');
@@ -490,7 +503,9 @@ const getAuthToken = async (okapi, tenant, username, password, self, authPath) =
       .set('accept', 'application/json')
       .set('content-type', 'application/json');
     let token;
+    let exTime;
     if (authPath && authPath.match(/expiry/)) {
+      let expiry = res.body.tokenExpiration.accessTokenExpiration;
       let cooks = res.headers['set-cookie'];
       for (let x = 0; x < cooks.length; x++) {
         let cook = cooks[x];
@@ -498,10 +513,11 @@ const getAuthToken = async (okapi, tenant, username, password, self, authPath) =
           token = cook.replace(/^folioAccessToken=([^;]+).*/, '$1');
         }
       }
+      exTime = new Date(expiry).valueOf();
     } else {
       token = res.headers['x-okapi-token'];
     }
-    return token;
+    return { token: token, expiry: exTime };
   } catch (e) {
     const errMsg = (e.response) ? e.response.text : e;
     self.log(chalk.red(errMsg));
