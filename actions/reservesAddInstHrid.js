@@ -10,7 +10,8 @@ const action = async (line, steps) => {
   	let iid = rr.copiedItem.instanceId;
   	let inst = await steps.goto(`instance-storage/instances/${iid}`);
 	if (inst) {
-		rr.copiedItem.instanceHrid = inst.hrid
+		rr.copiedItem.instanceHrid = inst.hrid;
+		rr.copiedItem.instanceDiscoverySuppress = false;
 		await steps.send(`coursereserves/reserves/${rr.id}`, rr);
 		await steps.preview(rr, orig);
 	}
