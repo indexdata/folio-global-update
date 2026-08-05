@@ -495,6 +495,7 @@ function sleep(ms) {
 const getAuthToken = async (okapi, tenant, username, password, self, authPath) => {
   const authUrl = (authPath) ? okapi + authPath : okapi + '/bl-users/login'; 
   const authBody = `{"username": "${username}", "password": "${password}"}`;
+  self.log(`GET ${authUrl}`);
   try {
     let res = await superagent
       .post(authUrl)
@@ -505,7 +506,7 @@ const getAuthToken = async (okapi, tenant, username, password, self, authPath) =
     let token;
     let exTime;
     if (authPath && authPath.match(/expiry/)) {
-      let expiry = res.body.tokenExpiration.accessTokenExpiration;
+      let expiry = (res.body.tokenExpiration) ? res.body.tokenExpiration.accessTokenExpiration : res.body.accessTokenExpiration;
       let cooks = res.headers['set-cookie'];
       for (let x = 0; x < cooks.length; x++) {
         let cook = cooks[x];
