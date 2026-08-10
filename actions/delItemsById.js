@@ -1,5 +1,5 @@
 /*
- * This script will delete items with effectiveLocationId fed77359-381b-598e-8a7b-0c68a2810f32
+ * This script will delete items from a list of item IDs
 */
 
 
