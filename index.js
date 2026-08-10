@@ -308,6 +308,8 @@ const runAction = async (self, scriptPath, inFile) => {
 
   let line = 0;
   for await (let id of rl) {
+    line++;
+    if (inFile.match(/csv$/) && line === 1) continue;
     if (expiry) {
       let nowTime = new Date().valueOf();
       if (nowTime >= expiry) {
@@ -319,7 +321,6 @@ const runAction = async (self, scriptPath, inFile) => {
       }
     }
     id = id.replace(/^"|"$/g, '');
-    line++;
     let lid = id.replace(/^(.{50}).+/, '$1...');
     let logLine = `[${line}] Processing ${lid}`;
     self.log(chalk.bold(logLine));
