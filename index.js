@@ -303,8 +303,11 @@ const runAction = async (self, scriptPath, inFile) => {
     seconds: '',
     success: 0,
     failed: 0,
-    total: 0,
-  }
+    lines: 0,
+    input: inFile.replace(/^.+\//, ''),
+    url: config.okapi,
+    tenant: config.tenant
+  };
 
   let line = 0;
   for await (let id of rl) {
@@ -339,7 +342,7 @@ const runAction = async (self, scriptPath, inFile) => {
     if (work.mode === 'TEST' && line === config.testLimit) break;
   }
   delete require.cache[require.resolve(scriptPath)];
-  stats.total = line;
+  stats.lines = line;
   if (work.mode !== 'TEST') {
     const endTime = Date.now();
     stats.start = new Date(startTime).toUTCString();
