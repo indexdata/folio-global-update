@@ -499,7 +499,7 @@ function sleep(ms) {
 const getAuthToken = async (okapi, tenant, username, password, self, authPath) => {
   const authUrl = (authPath) ? okapi + authPath : okapi + '/bl-users/login'; 
   const authBody = `{"username": "${username}", "password": "${password}"}`;
-  self.log(`GET ${authUrl}`);
+  self.log(`POST ${authUrl}`);
   try {
     let res = await superagent
       .post(authUrl)
