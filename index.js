@@ -61,7 +61,7 @@ const app = async () => {
     putCache: 'putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued',
     getCache: 'getCache(key) -- fetches value from cache based on key',
     save: 'save(json) -- saves record to a file in savePath',
-    sleep: 'sleep(ms) -- delays the execution of acction script by ms (milliseconds)'
+    sleep: 'sleep(ms) -- delays the execution of action script by ms (milliseconds)'
   };
 
 
