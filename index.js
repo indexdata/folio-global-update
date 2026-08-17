@@ -47,6 +47,7 @@ const app = async () => {
     uuidgen: uuidGen,
     putCache: putCache,
     getCache: getCache,
+    save: saveRec,
     sleep: sleep
   };
 
@@ -59,6 +60,7 @@ const app = async () => {
     uuidgen: 'uuidgen(data, [ namespace ]) -- returns a version 5 deterministic UUID based on <data>.  Takes an optional namespace',
     putCache: 'putCache(key, value) -- stores key/value pairs for the session or until the empty-cache command is issued',
     getCache: 'getCache(key) -- fetches value from cache based on key',
+    save: 'save(json) -- saves record to a file in savePath',
     sleep: 'sleep(ms) -- delays the execution of acction script by ms (milliseconds)'
   };
 
@@ -471,6 +473,10 @@ const deleteFolio = async (endpoint) => {
       throw new Error(e);
     }
   }
+}
+
+const saveRec = async (rec) => {
+  saverNew.log(JSON.stringify(rec)); 
 }
 
 const uuidGen = async (text, ns) => {
